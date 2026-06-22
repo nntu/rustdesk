@@ -496,15 +496,29 @@ if (-not $isAdmin) {
 $rustdeskExe = "C:\Program Files\RustDesk\rustdesk.exe"
 if (-not (Test-Path $rustdeskExe)) {
     Write-Host "[1/8] Installing RustDesk..." -ForegroundColor Yellow
-    $tempExe = "$env:TEMP\rustdesk-installer.exe"
-    $downloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/1.2.3-2/rustdesk-1.2.3-2-x86_64.exe"
+    $tempMsi = "$env:TEMP\rustdesk-installer.msi"
+    $downloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/1.4.8/rustdesk-1.4.8-x86_64.msi"
+    $resolved = $false
     try {
-        $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/rustdesk/rustdesk/releases/latest"
-        $asset = $releases.assets | Where-Object { $_.name -like "*x86_64.exe" -and $_.name -notlike "*crd*" } | Select-Object -First 1
-        if ($asset) { $downloadUrl = $asset.browser_download_url }
+        $resp = Invoke-WebRequest -Uri "https://github.com/rustdesk/rustdesk/releases/latest" -MaximumRedirection 0 -UseBasicParsing -ErrorAction Stop
+        $redirectUrl = $resp.Headers.Location
+        if ($redirectUrl -match '/tag/([^/]+)') {
+            $tag = $Matches[1]
+            $downloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/$tag/rustdesk-$tag-x86_64.msi"
+            $resolved = $true
+        }
     } catch {}
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $tempExe -UseBasicParsing
-    Start-Process -FilePath $tempExe -ArgumentList "--silent-install" -WindowStyle Hidden -Wait
+    if (-not $resolved) {
+        try {
+            $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/rustdesk/rustdesk/releases/latest" -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -ErrorAction Stop
+            $asset = $releases.assets | Where-Object { $_.name -like "*x86_64.msi" -and $_.name -notlike "*crd*" } | Select-Object -First 1
+            if ($asset) {
+                $downloadUrl = $asset.browser_download_url
+            }
+        } catch {}
+    }
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $tempMsi -UseBasicParsing
+    Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$tempMsi`" /qn /norestart" -Wait -WindowStyle Hidden
     $waitCount = 0
     while (-not (Test-Path $rustdeskExe) -and $waitCount -lt 30) {
         Start-Sleep -Seconds 2
