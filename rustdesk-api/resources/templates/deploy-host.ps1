@@ -108,6 +108,29 @@ function Start-RustDeskRuntime {
     Ensure-RustDeskIpcReady -Exe $Exe
 }
 
+function Get-RustDeskHostOptionPolicy {
+    return [ordered]@{
+        "verification-method" = "use-permanent-password"
+        "approve-mode" = "password"
+        "allow-logon-screen-password" = "Y"
+        "allow-auto-update" = "Y"
+    }
+}
+
+function Set-RustDeskHostOptions {
+    param([string]$Exe)
+
+    Ensure-RustDeskIpcReady -Exe $Exe
+    $policy = Get-RustDeskHostOptionPolicy
+    foreach ($entry in $policy.GetEnumerator()) {
+        $output = (& $Exe --option $entry.Key $entry.Value 2>&1 | Out-String).Trim()
+        if ($output) {
+            Write-DeployLog "rustdesk --option $($entry.Key) output: $output"
+        }
+        Write-DeployLog "Host option applied: $($entry.Key)=$($entry.Value)"
+    }
+}
+
 function Set-RustDeskPermanentPassword {
     param(
         [string]$Exe,
@@ -121,11 +144,6 @@ function Set-RustDeskPermanentPassword {
         $lastOutput = (& $Exe --password "$Password" 2>&1 | Out-String).Trim()
         Write-DeployLog "rustdesk --password attempt $($i + 1): $lastOutput"
         if ($lastOutput -match 'Done') {
-            $optionOutput = (& $Exe --option verification-method use-permanent-password 2>&1 | Out-String).Trim()
-            if ($optionOutput) {
-                Write-DeployLog "verification-method output: $optionOutput"
-            }
-            Write-DeployLog "verification-method set to use-permanent-password"
             return
         }
         if ($lastOutput -match 'Installation and administrative privileges required') {
@@ -287,20 +305,16 @@ function Test-RustDeskConfigApplied {
             Reason = if ($result.Passed) { "ok" } else { "mismatch" }
             Details = $result
         }
-        if ($result.Passed) {
-            return [PSCustomObject]@{
-                Passed = $true
-                Path = $tomlPath
-                Details = $result
-                Reports = $reports
-            }
-        }
     }
 
+    $checkedReports = @($reports | Where-Object { $_.Reason -ne "missing" })
+    $failedReports = @($checkedReports | Where-Object { -not $_.Passed })
+    $userPath = "$env:APPDATA\RustDesk\config\RustDesk2.toml"
+    $userReport = $reports | Where-Object { $_.Path -eq $userPath } | Select-Object -First 1
     return [PSCustomObject]@{
-        Passed = $false
-        Path = ""
-        Details = $null
+        Passed = ($userReport.Passed -and $failedReports.Count -eq 0)
+        Path = (($checkedReports | ForEach-Object { $_.Path }) -join ", ")
+        Details = ($checkedReports | Select-Object -Last 1).Details
         Reports = $reports
     }
 }
@@ -377,6 +391,64 @@ function Assert-RustDeskConfigApplied {
         $msg += " Last seen host=$($details.ActualHost) relay=$($details.ActualRelay) api=$($details.ActualApi)."
     }
     Write-Error $msg
+    exit 1
+}
+
+function Test-RustDeskHostOptionsApplied {
+    $policy = Get-RustDeskHostOptionPolicy
+    $reports = @()
+    foreach ($tomlPath in (Get-RustDeskConfigPaths)) {
+        if (-not (Test-Path -LiteralPath $tomlPath -ErrorAction SilentlyContinue)) {
+            $reports += [PSCustomObject]@{ Path = $tomlPath; Exists = $false; Passed = $false; Mismatches = @() }
+            continue
+        }
+
+        $content = Get-Content -LiteralPath $tomlPath -Raw -ErrorAction SilentlyContinue
+        $mismatches = @()
+        foreach ($entry in $policy.GetEnumerator()) {
+            $actual = Get-RustDeskTomlValue -Content $content -Name $entry.Key
+            if ($actual -ne $entry.Value) {
+                $mismatches += "$($entry.Key): expected=$($entry.Value), actual=$actual"
+            }
+        }
+        $reports += [PSCustomObject]@{
+            Path = $tomlPath
+            Exists = $true
+            Passed = ($mismatches.Count -eq 0)
+            Mismatches = $mismatches
+        }
+    }
+
+    $checked = @($reports | Where-Object { $_.Exists })
+    $userPath = "$env:APPDATA\RustDesk\config\RustDesk2.toml"
+    $userReport = $reports | Where-Object { $_.Path -eq $userPath } | Select-Object -First 1
+    return [PSCustomObject]@{
+        Passed = ($userReport.Passed -and @($checked | Where-Object { -not $_.Passed }).Count -eq 0)
+        Reports = $reports
+    }
+}
+
+function Assert-RustDeskHostOptionsApplied {
+    param([int]$MaxAttempts = 15)
+
+    for ($i = 0; $i -lt $MaxAttempts; $i++) {
+        $result = Test-RustDeskHostOptionsApplied
+        if ($result.Passed) {
+            Write-DeployLog "Advanced host options verified."
+            return
+        }
+        Start-Sleep -Seconds 2
+    }
+
+    $result = Test-RustDeskHostOptionsApplied
+    foreach ($report in $result.Reports) {
+        if (-not $report.Exists) {
+            Write-DeployLog "Host option verify: missing $($report.Path)"
+        } elseif (-not $report.Passed) {
+            Write-DeployLog "Host option verify failed at $($report.Path): $($report.Mismatches -join '; ')"
+        }
+    }
+    Write-Error "RustDesk advanced host option verification failed."
     exit 1
 }
 
@@ -465,6 +537,136 @@ fav = []
     }
 }
 
+function Get-LatestRustDeskMsi {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    $architecture = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "aarch64" } else { "x86_64" }
+    $headers = @{
+        "User-Agent" = "RustDesk-Host-Deployment"
+        "Accept" = "application/vnd.github+json"
+        "X-GitHub-Api-Version" = "2022-11-28"
+    }
+
+    try {
+        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/rustdesk/rustdesk/releases/latest" -Headers $headers -TimeoutSec 30 -ErrorAction Stop
+        $version = ([string]$release.tag_name).Trim().TrimStart('v')
+        $expectedName = "rustdesk-$version-$architecture.msi"
+        $asset = $release.assets | Where-Object { $_.name -eq $expectedName -and $_.state -eq "uploaded" } | Select-Object -First 1
+        if (-not $asset) {
+            throw "Release $version does not contain $expectedName"
+        }
+        return [PSCustomObject]@{
+            Version = $version
+            Url = [string]$asset.browser_download_url
+            FileName = $expectedName
+            Size = [long]$asset.size
+            Sha256 = (([string]$asset.digest) -replace '^sha256:', '').Trim()
+            Source = "GitHub API"
+        }
+    } catch {
+        Write-DeployLog "GitHub release API lookup failed: $($_.Exception.Message)"
+    }
+
+    # API rate limits or transient failures should not force a stale hard-coded
+    # version. Resolve the latest release redirect and construct its MSI URL.
+    try {
+        $response = Invoke-WebRequest -Uri "https://github.com/rustdesk/rustdesk/releases/latest" -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
+        $releaseUrl = [string]$response.BaseResponse.ResponseUri.AbsoluteUri
+        if ($releaseUrl -notmatch '/tag/([^/?#]+)') {
+            throw "Cannot determine release tag from $releaseUrl"
+        }
+        $tag = $Matches[1]
+        $version = $tag.TrimStart('v')
+        $fileName = "rustdesk-$version-$architecture.msi"
+        return [PSCustomObject]@{
+            Version = $version
+            Url = "https://github.com/rustdesk/rustdesk/releases/download/$tag/$fileName"
+            FileName = $fileName
+            Size = 0
+            Sha256 = ""
+            Source = "GitHub latest redirect"
+        }
+    } catch {
+        Write-DeployLog "GitHub release redirect lookup failed: $($_.Exception.Message)"
+        return $null
+    }
+}
+
+function Install-LatestRustDeskClient {
+    param([string]$Exe)
+
+    $release = Get-LatestRustDeskMsi
+    if (-not $release) {
+        if (Test-Path -LiteralPath $Exe) {
+            Write-Warning "Could not check the latest RustDesk release; continuing with the installed client."
+            Write-DeployLog "Latest client lookup unavailable; keeping installed client."
+            return
+        }
+        Write-Error "Could not resolve the latest RustDesk MSI from GitHub."
+        exit 1
+    }
+
+    $installedVersion = ""
+    if (Test-Path -LiteralPath $Exe) {
+        $installedVersion = ([Diagnostics.FileVersionInfo]::GetVersionInfo($Exe).ProductVersion -split '[ +]')[0]
+    }
+    Write-DeployLog "Latest RustDesk client=$($release.Version) source=$($release.Source) installed=$installedVersion"
+    $sameVersion = $installedVersion -match ("^" + [regex]::Escape($release.Version) + "(?:\.0)*$")
+    if ($sameVersion) {
+        Write-Host " -> RustDesk $installedVersion is already current." -ForegroundColor Green
+        return
+    }
+
+    $tempMsi = Join-Path $env:TEMP $release.FileName
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        try {
+            Remove-Item -LiteralPath $tempMsi -Force -ErrorAction SilentlyContinue
+            Write-DeployLog "Downloading RustDesk $($release.Version), attempt ${attempt}: $($release.Url)"
+            Invoke-WebRequest -Uri $release.Url -OutFile $tempMsi -UseBasicParsing -TimeoutSec 180 -ErrorAction Stop
+            break
+        } catch {
+            Write-DeployLog "RustDesk download attempt $attempt failed: $($_.Exception.Message)"
+            if ($attempt -eq 3) { throw }
+            Start-Sleep -Seconds (2 * $attempt)
+        }
+    }
+
+    if ($release.Size -gt 0 -and (Get-Item -LiteralPath $tempMsi).Length -ne $release.Size) {
+        Write-Error "Downloaded RustDesk MSI size does not match GitHub metadata."
+        exit 1
+    }
+    if ($release.Sha256) {
+        $actualHash = (Get-FileHash -LiteralPath $tempMsi -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actualHash -ne $release.Sha256.ToLowerInvariant()) {
+            Write-Error "Downloaded RustDesk MSI SHA-256 does not match GitHub metadata."
+            exit 1
+        }
+    }
+    $signature = Get-AuthenticodeSignature -LiteralPath $tempMsi
+    if ($signature.Status -ne "Valid") {
+        Write-Error "Downloaded RustDesk MSI signature is not valid: $($signature.Status)"
+        exit 1
+    }
+
+    Stop-RustDeskRuntime
+    Write-Host "[1/8] Installing RustDesk $($release.Version)..." -ForegroundColor Yellow
+    $install = Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$tempMsi`" /qn /norestart" -Wait -PassThru -WindowStyle Hidden
+    Write-DeployLog "RustDesk MSI exit code: $($install.ExitCode)"
+    if ($install.ExitCode -notin @(0, 1641, 3010)) {
+        Write-Error "RustDesk MSI installation failed with exit code $($install.ExitCode)."
+        exit 1
+    }
+
+    for ($i = 0; $i -lt 30; $i++) {
+        if (Test-Path -LiteralPath $Exe) { break }
+        Start-Sleep -Seconds 2
+    }
+    if (-not (Test-Path -LiteralPath $Exe)) {
+        Write-Error "RustDesk installation completed but rustdesk.exe was not found."
+        exit 1
+    }
+    Write-DeployLog "RustDesk $($release.Version) installed. RebootRequired=$($install.ExitCode -in @(1641, 3010))"
+}
+
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "  RUSTDESK AUTOMATED HOST DEPLOYMENT SCRIPT (WINDOWS)     " -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
@@ -494,48 +696,17 @@ if (-not $isAdmin) {
 }
 
 $rustdeskExe = "C:\Program Files\RustDesk\rustdesk.exe"
-if (-not (Test-Path $rustdeskExe)) {
-    Write-Host "[1/8] Installing RustDesk..." -ForegroundColor Yellow
-    $tempMsi = "$env:TEMP\rustdesk-installer.msi"
-    $downloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/1.4.8/rustdesk-1.4.8-x86_64.msi"
-    $resolved = $false
-    try {
-        $resp = Invoke-WebRequest -Uri "https://github.com/rustdesk/rustdesk/releases/latest" -MaximumRedirection 0 -UseBasicParsing -ErrorAction Stop
-        $redirectUrl = $resp.Headers.Location
-        if ($redirectUrl -match '/tag/([^/]+)') {
-            $tag = $Matches[1]
-            $downloadUrl = "https://github.com/rustdesk/rustdesk/releases/download/$tag/rustdesk-$tag-x86_64.msi"
-            $resolved = $true
-        }
-    } catch {}
-    if (-not $resolved) {
-        try {
-            $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/rustdesk/rustdesk/releases/latest" -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -ErrorAction Stop
-            $asset = $releases.assets | Where-Object { $_.name -like "*x86_64.msi" -and $_.name -notlike "*crd*" } | Select-Object -First 1
-            if ($asset) {
-                $downloadUrl = $asset.browser_download_url
-            }
-        } catch {}
-    }
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $tempMsi -UseBasicParsing
-    Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$tempMsi`" /qn /norestart" -Wait -WindowStyle Hidden
-    $waitCount = 0
-    while (-not (Test-Path $rustdeskExe) -and $waitCount -lt 30) {
-        Start-Sleep -Seconds 2
-        $waitCount++
-    }
-    if (-not (Test-Path $rustdeskExe)) {
-        Write-Error "RustDesk install failed."
-        exit 1
-    }
-    Write-DeployLog "RustDesk installed."
-}
+Install-LatestRustDeskClient -Exe $rustdeskExe
 
 Install-RustDeskServiceIfNeeded -Exe $rustdeskExe
 
 Stop-RustDeskRuntime
 
 Write-Host "[2/8] Applying server config..." -ForegroundColor Yellow
+# RustDesk's documented Windows deployment flow applies --config while the
+# service is running. This lets the CLI update the service-owned configuration
+# through IPC instead of writing only to the interactive user's profile.
+Start-RustDeskRuntime
 Write-DeployLog "Running rustdesk --config"
 $configOutput = (& $rustdeskExe --config $ConfigString 2>&1 | Out-String).Trim()
 if ($configOutput) {
@@ -544,8 +715,6 @@ if ($configOutput) {
 if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {
     Write-Warning "rustdesk --config exit code: $LASTEXITCODE"
 }
-
-Start-RustDeskRuntime
 
 Write-Host "[3/8] Verifying server config..." -ForegroundColor Yellow
 $null = Assert-RustDeskConfigApplied -ExpectedHost $expectedHost -ExpectedRelay $expectedRelay -ExpectedApi $expectedApi -ExpectedKey $expectedKey
@@ -599,6 +768,7 @@ if ($PasswordMode -eq "custom" -and $CustomPassword) {
 }
 Write-Host " -> Host password: $hostPassword" -ForegroundColor Green
 Set-RustDeskPermanentPassword -Exe $rustdeskExe -Password $hostPassword
+Set-RustDeskHostOptions -Exe $rustdeskExe
 
 Write-Host "[7/8] Syncing address book..." -ForegroundColor Yellow
 $deployedAt = [int][DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
@@ -636,6 +806,13 @@ try {
     Write-Warning "Client auto-login failed: $($_.Exception.Message)"
     Write-DeployLog "Client auto-login failed: $($_.Exception.Message)"
 }
+
+# UI startup triggers config synchronization. Verify again after that sync so
+# deployment cannot report success when a service profile overwrites the server.
+Start-Sleep -Seconds 5
+Write-Host "[8/8] Verifying persisted server config..." -ForegroundColor Yellow
+$null = Assert-RustDeskConfigApplied -ExpectedHost $expectedHost -ExpectedRelay $expectedRelay -ExpectedApi $expectedApi -ExpectedKey $expectedKey
+Assert-RustDeskHostOptionsApplied
 
 try {
     Invoke-RestMethod -Uri "$cleanApiUrl/api/deploy/revoke" -Method Post -Headers $headers -Body "{}" | Out-Null
