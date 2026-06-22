@@ -504,7 +504,7 @@ if (-not (Test-Path $rustdeskExe)) {
         if ($asset) { $downloadUrl = $asset.browser_download_url }
     } catch {}
     Invoke-WebRequest -Uri $downloadUrl -OutFile $tempExe -UseBasicParsing
-    Start-Process -FilePath $tempExe -ArgumentList "--silent-install" -NoNewWindow -Wait
+    Start-Process -FilePath $tempExe -ArgumentList "--silent-install" -WindowStyle Hidden -Wait
     $waitCount = 0
     while (-not (Test-Path $rustdeskExe) -and $waitCount -lt 30) {
         Start-Sleep -Seconds 2
