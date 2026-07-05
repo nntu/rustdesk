@@ -27,9 +27,7 @@ Tài liệu: **Tiếng Việt** | [English](README_EN.md)
 ### Lưu ý về Bản quyền & Các Bản Fork ngoài
 - **Bản quyền & DMCA:** Thư mục `webclient2` (`resources/web2`) đã bị loại bỏ khỏi dự án do liên quan đến tranh chấp bản quyền/DMCA để đảm bảo tính an toàn pháp lý.
 - **Tuân thủ AGPL-3.0:** Do dự án gốc RustDesk Server sử dụng giấy phép AGPL-3.0, bất kỳ sửa đổi nào được chạy dưới dạng dịch vụ mạng công khai (Public SaaS) đều phải cung cấp mã nguồn đã sửa đổi cho người dùng. Đối với việc triển khai và sử dụng nội bộ (Intranet/Private Cloud), việc chỉnh sửa này là hoàn toàn hợp lệ và không vi phạm bản quyền.
-- **Các bản fork cộng đồng:** 
-  - **HopToDesk:** Bản fork nổi tiếng từ RustDesk cung cấp dịch vụ điều khiển miễn phí, hiện đã chuyển hướng kỹ thuật sang stack WebRTC. Từng bị cộng đồng chỉ trích vì thiếu ghi công dự án gốc.
-  - **Tenvo:** Bản fork thương mại hóa đóng gói cùng dịch vụ hỗ trợ cho doanh nghiệp.
+
 
 Khi cập nhật fork, cần phân biệt rõ:
 
