@@ -248,30 +248,29 @@ Download the release from [release](rustdesk-api/releases).
 
 #### Source Installation
 
-1. Clone the repository:
+1. Navigate to the `rustdesk-api` directory (if you are at the repository root):
    ```bash
-   git clone rustdesk-api.git
    cd rustdesk-api
    ```
 
 2. Install dependencies:
-
-    ```bash
-    go mod tidy
-    # Install Swag if you need to generate documentation; otherwise, you can skip this step
-    go install github.com/swaggo/swag/cmd/swag@latest
-    ```
-
-3. Build the admin front-end (the front-end code is
-   in [rustdesk-api-web](rustdesk-api-web)):
    ```bash
-   cd resources
-   mkdir -p admin
-   git clone rustdesk-api-web
-   cd rustdesk-api-web
+   go mod tidy
+   # Install Swag if you need to generate documentation; otherwise, you can skip this step
+   go install github.com/swaggo/swag/cmd/swag@latest
+   ```
+
+3. Build the admin front-end (the front-end source is in the sibling directory [rustdesk-api-web](../rustdesk-api-web)):
+   ```bash
+   # Navigate to the sibling front-end directory to build
+   cd ../rustdesk-api-web
    npm install
    npm run build
-   cp -ar dist/* ../admin/
+
+   # Copy the build output back into the API's resources directory
+   cd ../rustdesk-api
+   mkdir -p resources/admin
+   cp -ar ../rustdesk-api-web/dist/* resources/admin/
    ```
 
 4. Run:

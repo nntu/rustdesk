@@ -327,9 +327,8 @@ Tải phiên bản mới nhất từ trang [Releases](rustdesk-api/releases).
 
 #### Biên dịch từ mã nguồn
 
-1. Sao chép kho lưu trữ (Clone):
+1. Chuyển vào thư mục `rustdesk-api` (nếu đang ở thư mục gốc của dự án):
    ```bash
-   git clone rustdesk-api.git
    cd rustdesk-api
    ```
 
@@ -340,15 +339,17 @@ Tải phiên bản mới nhất từ trang [Releases](rustdesk-api/releases).
    go install github.com/swaggo/swag/cmd/swag@latest
    ```
 
-3. Biên dịch giao diện quản trị Web Admin (Mã nguồn nằm trong dự án [rustdesk-api-web](rustdesk-api-web)):
+3. Biên dịch giao diện quản trị Web Admin (Mã nguồn nằm ở thư mục đồng cấp [rustdesk-api-web](../rustdesk-api-web)):
    ```bash
-   cd resources
-   mkdir -p admin
-   git clone rustdesk-api-web
-   cd rustdesk-api-web
+   # Di chuyển sang thư mục front-end đồng cấp để build
+   cd ../rustdesk-api-web
    npm install
    npm run build
-   cp -ar dist/* ../admin/
+   
+   # Sao chép kết quả build vào thư mục resources của api
+   cd ../rustdesk-api
+   mkdir -p resources/admin
+   cp -ar ../rustdesk-api-web/dist/* resources/admin/
    ```
 
 4. Khởi chạy:
