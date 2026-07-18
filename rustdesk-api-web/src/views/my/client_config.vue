@@ -270,7 +270,7 @@
   import { useAppStore } from '@/store/app'
   import { ElMessage, ElMessageBox } from 'element-plus'
   import { T } from '@/utils/i18n'
-  import { Cpu, Notebook, Download, Tools } from '@element-plus/icons'
+  import { Cpu, Notebook, Download, Tools } from '@element-plus/icons-vue'
   import { createDeployToken, listDeployTokens, revokeDeployToken } from '@/api/my/deploy'
 
   const appStore = useAppStore()

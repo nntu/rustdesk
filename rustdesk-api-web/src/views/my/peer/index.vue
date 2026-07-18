@@ -195,7 +195,7 @@
   import { useRepositories as useABRepositories } from '@/views/address_book/index'
   import { useAppStore } from '@/store/app'
   import { connectByClient } from '@/utils/peer'
-  import { CopyDocument } from '@element-plus/icons'
+  import { CopyDocument } from '@element-plus/icons-vue'
   import { handleClipboard } from '@/utils/clipboard'
   import { batchCreateFromPeers, list as abList } from '@/api/my/address_book'
   import { showRemotePasswordDialog } from '@/utils/remotePassword'
