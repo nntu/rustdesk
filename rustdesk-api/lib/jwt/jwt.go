@@ -28,13 +28,15 @@ func (s *Jwt) GenerateToken(userId uint) string {
 		fmt.Println("jwt key is nil")
 		return ""
 	}
-	t := jwt.NewWithClaims(jwt.SigningMethodHS256,
-		UserClaims{
-			UserId: userId,
-			RegisteredClaims: jwt.RegisteredClaims{
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.TokenExpireDuration)),
-			},
-		})
+	claims := UserClaims{
+		UserId: userId,
+	}
+	if s.TokenExpireDuration > 0 {
+		claims.RegisteredClaims = jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.TokenExpireDuration)),
+		}
+	}
+	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	token, err := t.SignedString(s.Key)
 	if err != nil {
 		fmt.Printf("jwt token generate error: %v", err)

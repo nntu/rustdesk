@@ -78,7 +78,7 @@ func (us *UserService) InfoByAccessToken(token string) (*model.User, *model.User
 	if ut.Id == 0 {
 		return u, ut
 	}
-	if ut.ExpiredAt < time.Now().Unix() {
+	if ut.ExpiredAt > 0 && ut.ExpiredAt < time.Now().Unix() {
 		return u, ut
 	}
 	DB.Where("id = ?", ut.UserId).First(u)
@@ -487,11 +487,11 @@ func (us *UserService) getAdminUserCount() int64 {
 }
 
 // UserTokenExpireTimestamp generates user token expiration time
+// If Config.App.TokenExpire <= 0, token never expires (returns 0).
 func (us *UserService) UserTokenExpireTimestamp() int64 {
 	exp := Config.App.TokenExpire
-	if exp == 0 {
-		//Default seven days
-		exp = 604800
+	if exp <= 0 {
+		return 0
 	}
 	return time.Now().Add(exp).Unix()
 }
@@ -502,8 +502,14 @@ func (us *UserService) RefreshAccessToken(ut *model.UserToken) {
 }
 
 func (us *UserService) AutoRefreshAccessToken(ut *model.UserToken) {
-	if ut.ExpiredAt-time.Now().Unix() < Config.App.TokenExpire.Milliseconds()/3000 {
-		us.RefreshAccessToken(ut)
+	if ut == nil || ut.ExpiredAt == 0 {
+		return
+	}
+	if Config.App.TokenExpire > 0 {
+		halfLifeSeconds := int64(Config.App.TokenExpire.Seconds() / 2)
+		if ut.ExpiredAt-time.Now().Unix() < halfLifeSeconds {
+			us.RefreshAccessToken(ut)
+		}
 	}
 }
 
