@@ -3,7 +3,7 @@
 # ==============================================================================
 # STAGE 1: Build hbbs and hbbr in Rust
 # ==============================================================================
-FROM rust:1.96-alpine AS rust-builder
+FROM rust:1.97-alpine AS rust-builder
 
 RUN apk add --no-cache musl-dev gcc pkgconfig libsodium-dev cmake make g++ git sqlite
 

@@ -3,7 +3,7 @@
 # ==============================================================================
 # STAGE 1: Build Vue 3 Web Admin Frontend
 # ==============================================================================
-FROM node:20-alpine AS frontend-builder
+FROM node:24-alpine AS frontend-builder
 WORKDIR /frontend
 
 COPY ./rustdesk-api-web/package.json ./rustdesk-api-web/package-lock.json ./
