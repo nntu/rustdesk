@@ -20,9 +20,16 @@ Documentation: [Tiếng Việt](README.md) | **English**
 |---|---|---|---|---|
 | `hbbs` | RustDesk ID/Rendezvous server | `https://github.com/rustdesk/rustdesk-server` | `1.1.15` | Integrates `MUST_LOGIN` checks, shares `JWT_SECRET` with the API, and supports the required login/deployment flow before device registration. |
 | `hbbr` | RustDesk relay server | `https://github.com/rustdesk/rustdesk-server` | `1.1.15` | Packaged into the same Docker stack, shares the `hbbs` network namespace, and uses stack-level relay/domain configuration. |
-| `rustdesk-api` | API server | `https://github.com/lejianwen/rustdesk-api` | `2.7` | Adds short-lived deploy tokens, a PowerShell deploy-script endpoint, deploy-token auth for `/api/devices/deploy` and `/api/devices/cli`, `hbbs` public-key discovery, and automatic client server configuration. |
+| `rustdesk-api` | API server | `https://github.com/lejianwen/rustdesk-api` | `2.7` | Adds short-lived deploy tokens, a PowerShell deploy-script endpoint, deploy-token auth for `/api/devices/deploy` and `/api/devices/cli`, `hbbs` public-key discovery, and automatic client server configuration. Removed `webclient2` (`resources/web2`) because of DMCA/copyright issues. |
 | `rustdesk-api-web` | Web Admin | `https://github.com/lejianwen/rustdesk-api` | `2.7` | Adds `My -> Client Config`, client configuration display, self-downloading deploy command generation, script download, command copy actions, and token expiration metadata. |
 | Docker/ops in this repo | Local integration/custom fork | Local working tree | Based on the sources above | Adds `docker-compose.yml`, `Dockerfile`, `Dockerfile.server`, `nginx.conf`, `deploy-host.ps1`, shared data volumes, and operational documentation for self-hosted deployment. |
+
+### Copyright & External Forks Notes
+- **Copyright & DMCA:** The `webclient2` (`resources/web2`) directory has been removed due to a DMCA/copyright dispute to maintain legal safety.
+- **AGPL-3.0 Compliance:** Since the upstream RustDesk Server is licensed under AGPL-3.0, any modifications deployed publicly as a network service must share the modified source code. For internal deployments (Intranet/Private Cloud), modifications are fully permitted and compliant.
+- **Notable External Forks:**
+  - **HopToDesk:** A well-known remote desktop fork that has since technically diverged toward WebRTC. Faced community backlash initially for lack of attribution.
+  - **Tenvo:** A commercialized fork offering managed support options for enterprises.
 
 When updating from upstream/forks, pay attention to these boundaries:
 

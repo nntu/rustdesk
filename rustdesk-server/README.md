@@ -33,3 +33,14 @@ If you want to develop your own server, [rustdesk-server-demo](https://github.co
 ## Installation
 
 Please follow this [doc](https://rustdesk.com/docs/en/self-host/rustdesk-server-oss/)
+
+## Fork Information & Licensing / Thông tin các bản Fork và Bản quyền
+
+Because RustDesk Server is licensed under the **GNU Affero General Public License v3 (AGPL-3.0)**, anyone is permitted to fork the project.
+
+### Notable Forks / Các bản Fork nổi bật:
+- **HopToDesk**: A popular fork that provides free remote desktop services. Early in its lifecycle, it faced community criticism for lack of attribution to the original RustDesk project. It has since diverged technically (relying on WebRTC).
+- **Commercial Managed Forks (e.g., Tenvo)**: Managed service providers that package RustDesk Server with commercial support.
+
+If you modify and run this server publicly on a network, please ensure you comply with the AGPL-3.0 requirements by making the source code available to your users.
+

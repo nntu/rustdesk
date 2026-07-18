@@ -1,27 +1,55 @@
 # RustDesk API Web
-# 基于 Vue3 + Element Plus 的后台, 适用于 [RustDesk API](https://github.com/lejianwen/rustdesk-api)
 
-<a href="https://github.com/vuejs/vue-next">
-    <img src="https://img.shields.io/badge/vue-^3.2.16-brightgreen.svg" alt="vue3">
-  </a>
-  <a href="https://github.com/element-plus/element-plus">
-    <img src="https://img.shields.io/badge/element--plus-^2.8.2-brightgreen.svg" alt="element-plus">
-  </a>
-  <a href="https://github.com/lejianwen/Gwen-admin/blob/master/LICENSE">
-    <img src="https://img.shields.io/github/license/mashape/apistatus.svg" alt="license">
-  </a>
+A web administration panel based on Vue 3 and Element Plus, tailored for RustDesk self-hosted servers.
 
-# 安装步骤
+This project is a custom fork of the upstream repository: [https://github.com/lejianwen/rustdesk-api-web](https://github.com/lejianwen/rustdesk-api-web).
 
+---
+
+## Key Modifications / Các thay đổi chính
+
+Compared to the upstream version, this fork includes the following enhancements and features:
+
+### 1. Localization / Bản dịch
+- Removed Chinese interface elements and translated the administration panel into English and Vietnamese (Viet hóa).
+
+### 2. Client Deployment & Auto-Configuration / Triển khai & Cấu hình Client tự động
+- Added **My -> Client Config** page to view client configurations.
+- Added a generator for self-downloading PowerShell deployment commands for Windows client setup.
+- Enabled direct downloading of deployment script templates.
+
+### 3. Remote Password Management / Quản lý mật khẩu từ xa
+- Implemented remote password viewing and management in the address book and peer views.
+- Introduced options for structured (randomly generated) and custom passwords.
+
+### 4. Deploy Token Management / Quản lý Token triển khai
+- Added features to list, generate, and revoke short-lived deployment tokens.
+
+---
+
+## Installation & Development / Hướng dẫn Cài đặt & Phát triển
+
+This directory is integrated into the monorepo. You can build and run it locally, or deploy it using the main Docker Compose stack.
+
+### Local Development / Phát triển cục bộ
+To run this application locally for development:
 ```shell
-git clone https://github.com/lejianwen/rustdesk-api-web
-cd rustdesk-api-web   
+# Navigate to this directory from the repository root
+cd rustdesk-api-web
+
+# Install dependencies
 npm install
 
-// 本地开发
+# Start development server
 npm run dev
-
-// 打包
-npm run build
-
 ```
+
+### Production Build / Đóng gói sản xuất
+```shell
+# Compile and build the application
+cd rustdesk-api-web
+npm run build
+```
+
+The build output will be generated in the `dist` folder, which is served by Nginx or the Go API in the Docker Compose stack.
+

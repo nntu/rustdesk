@@ -20,9 +20,14 @@ Tài liệu: **Tiếng Việt** | [English](README_EN.md)
 |---|---|---|---|---|
 | `hbbs` | RustDesk ID/Rendezvous server | `https://github.com/rustdesk/rustdesk-server` | `1.1.15` | Tích hợp kiểm tra `MUST_LOGIN`, dùng `JWT_SECRET` chung với API, hỗ trợ luồng bắt buộc đăng nhập/deploy trước khi thiết bị được đăng ký. |
 | `hbbr` | RustDesk relay server | `https://github.com/rustdesk/rustdesk-server` | `1.1.15` | Đóng gói trong cùng Docker stack, dùng chung network namespace với `hbbs`, cấu hình relay theo domain nội bộ của stack. |
-| `rustdesk-api` | API server | `https://github.com/lejianwen/rustdesk-api` | `2.7` | Bổ sung deploy token ngắn hạn, route tải PowerShell deploy script, auth bằng deploy token cho `/api/devices/deploy` và `/api/devices/cli`, đọc public key từ `hbbs`, cấu hình server tự động cho client. |
+| `rustdesk-api` | API server | `https://github.com/lejianwen/rustdesk-api` | `2.7` | Bổ sung deploy token ngắn hạn, route tải PowerShell deploy script, auth bằng deploy token cho `/api/devices/deploy` và `/api/devices/cli`, đọc public key từ `hbbs`, cấu hình server tự động cho client. Loại bỏ `webclient2` (`resources/web2`) do yêu cầu DMCA/Bản quyền. |
 | `rustdesk-api-web` | Web Admin | `https://github.com/lejianwen/rustdesk-api` | `2.7` | Bổ sung trang `My -> Client Config`, hiển thị cấu hình client, tạo lệnh tự tải script và chạy deploy, tải script deploy, copy command/token metadata. |
 | Docker/ops trong repo này | Local integration/custom fork | Local working tree | Theo các nguồn trên | Thêm `docker-compose.yml`, `Dockerfile`, `Dockerfile.server`, `nginx.conf`, `deploy-host.ps1`, volume dữ liệu chung và tài liệu vận hành cho triển khai self-hosted. |
+
+### Lưu ý về Bản quyền & Các Bản Fork ngoài
+- **Bản quyền & DMCA:** Thư mục `webclient2` (`resources/web2`) đã bị loại bỏ khỏi dự án do liên quan đến tranh chấp bản quyền/DMCA để đảm bảo tính an toàn pháp lý.
+- **Tuân thủ AGPL-3.0:** Do dự án gốc RustDesk Server sử dụng giấy phép AGPL-3.0, bất kỳ sửa đổi nào được chạy dưới dạng dịch vụ mạng công khai (Public SaaS) đều phải cung cấp mã nguồn đã sửa đổi cho người dùng. Đối với việc triển khai và sử dụng nội bộ (Intranet/Private Cloud), việc chỉnh sửa này là hoàn toàn hợp lệ và không vi phạm bản quyền.
+
 
 Khi cập nhật fork, cần phân biệt rõ:
 
