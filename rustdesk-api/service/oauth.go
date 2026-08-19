@@ -36,6 +36,7 @@ type OidcEndpoint struct {
 
 type OauthCacheItem struct {
 	UserId     uint   `json:"user_id"`
+	ApiDomain  string `json:"api_domain"`
 	Id         string `json:"id"` //device ID of rustdesk
 	Op         string `json:"op"`
 	Action     string `json:"action"`
@@ -95,16 +96,26 @@ func (os *OauthService) DeleteOauthCache(key string) {
 	OauthCache.Delete(key)
 }
 
-func (os *OauthService) BeginAuth(op string) (error error, state, verifier, nonce, url string) {
+func normalizeAPIDomain(apiDomain string) string {
+	apiDomain = strings.TrimSpace(apiDomain)
+	apiDomain = strings.TrimRight(apiDomain, "/")
+	if apiDomain == "" {
+		return Config.Rustdesk.ApiServer
+	}
+	return apiDomain
+}
+
+func (os *OauthService) BeginAuth(op string, apiDomain string) (error error, state, verifier, nonce, url string) {
+	apiDomain = normalizeAPIDomain(apiDomain)
 	state = utils.RandomString(10) + strconv.FormatInt(time.Now().Unix(), 10)
 	verifier = ""
 	nonce = ""
 	if op == model.OauthTypeWebauth {
-		url = Config.Rustdesk.ApiServer + "/_admin/#/oauth/" + state
+		url = apiDomain + "/_admin/#/oauth/" + state
 		//url = "http://localhost:8888/_admin/#/oauth/" + code
 		return nil, state, verifier, nonce, url
 	}
-	err, oauthInfo, oauthConfig, _ := os.GetOauthConfig(op)
+	err, oauthInfo, oauthConfig, _ := os.GetOauthConfig(op, apiDomain)
 	if err == nil {
 		extras := make([]oauth2.AuthCodeOption, 0, 3)
 
@@ -169,16 +180,17 @@ func (os *OauthService) LinuxdoProvider() *oidc.Provider {
 }
 
 // GetOauthConfig retrieves the OAuth2 configuration based on the provider name
-func (os *OauthService) GetOauthConfig(op string) (err error, oauthInfo *model.Oauth, oauthConfig *oauth2.Config, provider *oidc.Provider) {
+func (os *OauthService) GetOauthConfig(op string, apiDomain string) (err error, oauthInfo *model.Oauth, oauthConfig *oauth2.Config, provider *oidc.Provider) {
 	//err, oauthInfo, oauthConfig = os.getOauthConfigGeneral(op)
 	oauthInfo = os.InfoByOp(op)
 	if oauthInfo.Id == 0 || oauthInfo.ClientId == "" || oauthInfo.ClientSecret == "" {
 		return errors.New("ConfigNotFound"), nil, nil, nil
 	}
+	apiDomain = normalizeAPIDomain(apiDomain)
 	oauthConfig = &oauth2.Config{
 		ClientID:     oauthInfo.ClientId,
 		ClientSecret: oauthInfo.ClientSecret,
-		RedirectURL:  Config.Rustdesk.ApiServer + "/api/oidc/callback",
+		RedirectURL:  apiDomain + "/api/oidc/callback",
 	}
 
 	// Maybe should validate the oauthConfig here
@@ -333,8 +345,8 @@ func (os *OauthService) oidcCallback(oauthConfig *oauth2.Config, provider *oidc.
 }
 
 // Callback: Get user information by code and op(Oauth provider)
-func (os *OauthService) Callback(code, verifier, op, nonce string) (err error, oauthUser *model.OauthUser) {
-	err, oauthInfo, oauthConfig, provider := os.GetOauthConfig(op)
+func (os *OauthService) Callback(code, verifier, op, nonce, apiDomain string) (err error, oauthUser *model.OauthUser) {
+	err, oauthInfo, oauthConfig, provider := os.GetOauthConfig(op, apiDomain)
 	// oauthType is already validated in GetOauthConfig
 	if err != nil {
 		return err, nil

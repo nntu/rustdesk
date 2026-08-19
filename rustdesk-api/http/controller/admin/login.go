@@ -191,7 +191,7 @@ func (ct *Login) OidcAuth(c *gin.Context) {
 		return
 	}
 
-	err, state, verifier, nonce, url := service.AllService.OauthService.BeginAuth(f.Op)
+	err, state, verifier, nonce, url := service.AllService.OauthService.BeginAuth(f.Op, f.ApiDomain)
 	if err != nil {
 		response.Error(c, response.TranslateMsg(c, err.Error()))
 		return
@@ -199,6 +199,7 @@ func (ct *Login) OidcAuth(c *gin.Context) {
 
 	service.AllService.OauthService.SetOauthCache(state, &service.OauthCacheItem{
 		Action:     service.OauthActionTypeLogin,
+		ApiDomain:  f.ApiDomain,
 		Op:         f.Op,
 		Id:         f.Id,
 		DeviceType: "webadmin",

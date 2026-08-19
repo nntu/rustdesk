@@ -2,6 +2,7 @@ package api
 
 type OidcAuthRequest struct {
 	DeviceInfo DeviceInfoInLogin `json:"deviceInfo" label:"Device Information"`
+	ApiDomain  string            `json:"apiDomain" label:"apiDomain"`
 	Id         string            `json:"id"  label:"id"`
 	Op         string            `json:"op" label:"op"`
 	Uuid       string            `json:"uuid"  label:"uuid"`

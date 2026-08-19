@@ -1,0 +1,11 @@
+{
+    "schema_version": 2,
+    "commit": "6c2fb73e4c727e3f6357b8f316c79c6302abef34",
+    "indexed_at": "2026-08-18T04:24:25Z",
+    "project": "RustDesk",
+    "nodes": 14966,
+    "edges": 74813,
+    "original_size": 36503552,
+    "compressed_size": 8380152,
+    "compression_level": 9
+}

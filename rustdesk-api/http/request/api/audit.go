@@ -11,6 +11,7 @@ type AuditConnForm struct {
 	Action    string   `json:"action"`
 	ConnId    int64    `json:"conn_id"`
 	Id        string   `json:"id"`
+	Nonce     string   `json:"nonce"`
 	Peer      []string `json:"peer"`
 	Ip        string   `json:"ip"`
 	SessionId float64  `json:"session_id"`
@@ -45,6 +46,7 @@ type AuditFileForm struct {
 	Id     string `json:"id"`
 	Info   string `json:"info"`
 	IsFile bool   `json:"is_file"`
+	Nonce  string `json:"nonce"`
 	Path   string `json:"path"`
 	PeerId string `json:"peer_id"`
 	Type   int    `json:"type"`
@@ -78,10 +80,11 @@ func (a *AuditFileForm) ToAuditFile() *model.AuditFile {
 }
 
 type AuditAlarmForm struct {
-	Id   string `json:"id" binding:"required"`
-	Uuid string `json:"uuid" binding:"required"`
-	Typ  int    `json:"typ"`
-	Info string `json:"info"`
+	Id    string `json:"id" binding:"required"`
+	Nonce string `json:"nonce"`
+	Uuid  string `json:"uuid" binding:"required"`
+	Typ   int    `json:"typ"`
+	Info  string `json:"info"`
 }
 
 func (a *AuditAlarmForm) ToAuditAlarm(ip string) *model.AuditAlarm {

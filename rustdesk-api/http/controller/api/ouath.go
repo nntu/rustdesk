@@ -36,7 +36,7 @@ func (o *Oauth) OidcAuth(c *gin.Context) {
 
 	oauthService := service.AllService.OauthService
 
-	err, state, verifier, nonce, url := oauthService.BeginAuth(f.Op)
+	err, state, verifier, nonce, url := oauthService.BeginAuth(f.Op, f.ApiDomain)
 	if err != nil {
 		response.Error(c, response.TranslateMsg(c, err.Error()))
 		return
@@ -44,6 +44,7 @@ func (o *Oauth) OidcAuth(c *gin.Context) {
 
 	service.AllService.OauthService.SetOauthCache(state, &service.OauthCacheItem{
 		Action:     service.OauthActionTypeLogin,
+		ApiDomain:  f.ApiDomain,
 		Id:         f.Id,
 		Op:         f.Op,
 		Uuid:       f.Uuid,
@@ -171,7 +172,7 @@ func (o *Oauth) OauthCallback(c *gin.Context) {
 	var user *model.User
 	// Get user information
 	code := c.Query("code")
-	err, oauthUser := oauthService.Callback(code, verifier, op, nonce)
+	err, oauthUser := oauthService.Callback(code, verifier, op, nonce, oauthCache.ApiDomain)
 	if err != nil {
 		c.HTML(http.StatusOK, "oauth_fail.html", gin.H{
 			"message":     "OauthFailed",

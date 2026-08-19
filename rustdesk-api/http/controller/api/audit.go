@@ -16,6 +16,42 @@ import (
 type Audit struct {
 }
 
+const (
+	auditNonceCachePrefix = "audit:nonce:"
+	auditNonceTTLSeconds  = 5 * 60
+)
+
+type auditNonceEntry struct {
+	Result string `json:"result"`
+	Seen   bool   `json:"seen"`
+}
+
+func auditNonceCacheKey(nonce string) string {
+	return auditNonceCachePrefix + nonce
+}
+
+func loadAuditNonceResult(nonce string) (string, bool) {
+	if nonce == "" || global.Cache == nil {
+		return "", false
+	}
+	entry := auditNonceEntry{}
+	if err := global.Cache.Get(auditNonceCacheKey(nonce), &entry); err != nil {
+		global.Logger.Warn("loadAuditNonceResult", err)
+		return "", false
+	}
+	return entry.Result, entry.Seen
+}
+
+func storeAuditNonceResult(nonce string, result string) {
+	if nonce == "" || global.Cache == nil {
+		return
+	}
+	entry := auditNonceEntry{Result: result, Seen: true}
+	if err := global.Cache.Set(auditNonceCacheKey(nonce), entry, auditNonceTTLSeconds); err != nil {
+		global.Logger.Warn("storeAuditNonceResult", err)
+	}
+}
+
 // AuditConn
 // @Tags Audit
 // @Summary Audit connection
@@ -33,6 +69,10 @@ func (a *Audit) AuditConn(c *gin.Context) {
 		response.Error(c, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
+	if cachedGuid, ok := loadAuditNonceResult(af.Nonce); ok {
+		response.Success(c, cachedGuid)
+		return
+	}
 	/*ttt := &gin.H{}
 	c.ShouldBindBodyWith(ttt, binding.JSON)
 	fmt.Println(ttt)*/
@@ -40,6 +80,7 @@ func (a *Audit) AuditConn(c *gin.Context) {
 	if af.Action == model.AuditActionNew {
 		ac.Guid = uuid.New().String()
 		service.AllService.AuditService.CreateAuditConn(ac)
+		storeAuditNonceResult(af.Nonce, ac.Guid)
 		response.Success(c, ac.Guid)
 		return
 	} else if af.Action == model.AuditActionClose {
@@ -61,6 +102,7 @@ func (a *Audit) AuditConn(c *gin.Context) {
 			service.AllService.AuditService.UpdateAuditConn(up)
 		}
 	}
+	storeAuditNonceResult(af.Nonce, "")
 	response.Success(c, "")
 }
 
@@ -81,11 +123,16 @@ func (a *Audit) AuditFile(c *gin.Context) {
 		response.Error(c, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
+	if _, ok := loadAuditNonceResult(aff.Nonce); ok {
+		response.Success(c, "")
+		return
+	}
 	//ttt := &gin.H{}
 	//c.ShouldBindBodyWith(ttt, binding.JSON)
 	//fmt.Println(ttt)
 	af := aff.ToAuditFile()
 	service.AllService.AuditService.CreateAuditFile(af)
+	storeAuditNonceResult(aff.Nonce, "")
 	response.Success(c, "")
 }
 
@@ -176,6 +223,10 @@ func (a *Audit) AuditAlarm(c *gin.Context) {
 		response.Error(c, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
+	if _, ok := loadAuditNonceResult(af.Nonce); ok {
+		response.Success(c, "")
+		return
+	}
 
 	var count int64
 	global.DB.Model(&model.AuditAlarm{}).
@@ -193,5 +244,6 @@ func (a *Audit) AuditAlarm(c *gin.Context) {
 		return
 	}
 
+	storeAuditNonceResult(af.Nonce, "")
 	response.Success(c, "")
 }
