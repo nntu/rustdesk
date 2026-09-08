@@ -6,12 +6,15 @@
 FROM node:24-alpine AS frontend-builder
 WORKDIR /frontend
 
-COPY ./rustdesk-api-web/package.json ./rustdesk-api-web/package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline
+# Install standalone pnpm v12 (no corepack)
+RUN npm install -g pnpm@12
+
+COPY ./rustdesk-api-web/package.json ./rustdesk-api-web/pnpm-lock.yaml ./rustdesk-api-web/pnpm-workspace.yaml ./rustdesk-api-web/.npmrc ./
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --ignore-scripts
 
 COPY ./rustdesk-api-web/ ./
-RUN npm run build
+RUN pnpm run build
 
 # ==============================================================================
 # STAGE 2: Build Go Backend
