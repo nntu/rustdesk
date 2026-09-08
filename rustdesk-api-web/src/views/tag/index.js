@@ -1,193 +1,204 @@
-import { reactive, ref } from 'vue'
-import { create as admin_create, list as admin_list, remove as admin_remove, update as admin_update } from '@/api/tag'
-import { create as my_create, list as my_list, remove as my_remove, update as my_update } from '@/api/my/tag'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { useRoute } from 'vue-router'
-import { T } from '@/utils/i18n'
-import { useRepositories as useCollectionRepositories } from '@/views/address_book/collection'
+import {
+  create as my_create,
+  list as my_list,
+  remove as my_remove,
+  update as my_update,
+} from '@/api/my/tag';
+import {
+  create as admin_create,
+  list as admin_list,
+  remove as admin_remove,
+  update as admin_update,
+} from '@/api/tag';
+import { T } from '@/utils/i18n';
+import { useRepositories as useCollectionRepositories } from '@/views/address_book/collection';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { reactive, ref } from 'vue';
+import { useRoute } from 'vue-router';
 
 const apis = {
   admin: { list: admin_list, remove: admin_remove, update: admin_update, create: admin_create },
   my: { list: my_list, remove: my_remove, create: my_create, update: my_update },
-}
+};
 
-export function useRepositories (api_type = 'my') {
-
+export function useRepositories(api_type = 'my') {
   //Get query
-  const route = useRoute()
-  const user_id = route.query?.user_id
+  const route = useRoute();
+  const user_id = route.query?.user_id;
   const listRes = reactive({
-    list: [], total: 0, loading: false,
-  })
+    list: [],
+    total: 0,
+    loading: false,
+  });
   const listQuery = reactive({
     page: 1,
     page_size: 10,
-    user_id: user_id ? parseInt(user_id) : null,
+    user_id: user_id ? Number.parseInt(user_id) : null,
     collection_id: null,
-  })
+  });
 
   const flutterColor2rgba = (color) => {
     // color is a decimal number, first convert it to hexadecimal
-    let hex = color.toString(16)
-    console.log('hex', hex)
+    let hex = color.toString(16);
+    console.log('hex', hex);
     if (hex.length < 8) {
       //Add 0 to the front
-      hex = '0'.repeat(8 - hex.length) + hex
+      hex = '0'.repeat(8 - hex.length) + hex;
     }
     //The first two digits are transparency
-    let alpha = hex.slice(0, 2)
+    const alpha = hex.slice(0, 2);
     //The last six digits are the color
-    let rgba = hex.slice(2)
-    return `rgba(${parseInt(rgba.slice(0, 2), 16)}, ${parseInt(rgba.slice(2, 4), 16)}, ${parseInt(rgba.slice(4, 6), 16)}, ${parseInt(alpha, 16) / 255})`
-  }
+    const rgba = hex.slice(2);
+    return `rgba(${Number.parseInt(rgba.slice(0, 2), 16)}, ${Number.parseInt(rgba.slice(2, 4), 16)}, ${Number.parseInt(rgba.slice(4, 6), 16)}, ${Number.parseInt(alpha, 16) / 255})`;
+  };
 
   const rgba2flutterColor = (color) => {
-    console.log('color', color)
+    console.log('color', color);
     //rgba(133, 33, 33, 0.81)
-    let rgba = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*(\d+(\.\d+)?)\)/)
-    console.log('rgba', rgba)
-    let alpha = Math.round(parseFloat(rgba[4]) * 255).toString(16)
-    let r = parseInt(rgba[1]).toString(16)
-    let g = parseInt(rgba[2]).toString(16)
-    let b = parseInt(rgba[3]).toString(16)
+    const rgba = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*(\d+(\.\d+)?)\)/);
+    console.log('rgba', rgba);
+    let alpha = Math.round(Number.parseFloat(rgba[4]) * 255).toString(16);
+    let r = Number.parseInt(rgba[1]).toString(16);
+    let g = Number.parseInt(rgba[2]).toString(16);
+    let b = Number.parseInt(rgba[3]).toString(16);
     //If it is 1 place, it needs to be filled
     if (alpha.length === 1) {
-      alpha = '0' + alpha
+      alpha = '0' + alpha;
     }
     if (r.length === 1) {
-      r = '0' + r
+      r = '0' + r;
     }
     if (g.length === 1) {
-      g = '0' + g
+      g = '0' + g;
     }
     if (b.length === 1) {
-      b = '0' + b
+      b = '0' + b;
     }
-    console.log('to f color', alpha + r + g + b, parseInt(alpha + r + g + b, 16))
-    return parseInt(alpha + r + g + b, 16)
-  }
+    console.log('to f color', alpha + r + g + b, Number.parseInt(alpha + r + g + b, 16));
+    return Number.parseInt(alpha + r + g + b, 16);
+  };
 
   const getList = async () => {
-    listRes.loading = true
-    const res = await apis[api_type].list(listQuery).catch(_ => false)
-    listRes.loading = false
+    listRes.loading = true;
+    const res = await apis[api_type].list(listQuery).catch((_) => false);
+    listRes.loading = false;
     if (res) {
-      listRes.list = res.data.list.map(item => {
-        item.color = flutterColor2rgba(item.color)
-        return item
-      })
-      listRes.total = res.data.total
+      listRes.list = res.data.list.map((item) => {
+        item.color = flutterColor2rgba(item.color);
+        return item;
+      });
+      listRes.total = res.data.total;
     }
-  }
+  };
   const handlerQuery = () => {
     if (listQuery.page === 1) {
-      getList()
+      getList();
     } else {
-      listQuery.page = 1
+      listQuery.page = 1;
     }
-  }
+  };
 
   const del = async (row) => {
     const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('Delete') }), {
       confirmButtonText: T('Confirm'),
       cancelButtonText: T('Cancel'),
       type: 'warning',
-    }).catch(_ => false)
+    }).catch((_) => false);
     if (!cf) {
-      return false
+      return false;
     }
 
-    const res = await apis[api_type].remove({ id: row.id }).catch(_ => false)
+    const res = await apis[api_type].remove({ id: row.id }).catch((_) => false);
     if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      getList()
+      ElMessage.success(T('OperationSuccess'));
+      getList();
     }
-  }
+  };
 
-  const formVisible = ref(false)
+  const formVisible = ref(false);
   const formData = reactive({
     id: 0,
     name: '',
     color: 0,
     user_id: null,
     collection_id: null,
-  })
-  const currentColor = ref('')
+  });
+  const currentColor = ref('');
   const activeChange = (c) => {
-    currentColor.value = c
-  }
+    currentColor.value = c;
+  };
   const toEdit = (row) => {
-    console.log('row', row)
-    formVisible.value = true
-    formData.id = row.id
-    formData.name = row.name
-    formData.color = row.color
-    formData.user_id = row.user_id
-    formData.collection_id = row.collection_id
-    collectionListQuery.user_id = row.user_id
-    getCollectionList()
-  }
+    console.log('row', row);
+    formVisible.value = true;
+    formData.id = row.id;
+    formData.name = row.name;
+    formData.color = row.color;
+    formData.user_id = row.user_id;
+    formData.collection_id = row.collection_id;
+    collectionListQuery.user_id = row.user_id;
+    getCollectionList();
+  };
   const toAdd = () => {
-    formVisible.value = true
-    formData.id = 0
-    formData.name = ''
-    formData.color = ''
-    formData.user_id = null
-    formData.collection_id = null
-  }
+    formVisible.value = true;
+    formData.id = 0;
+    formData.name = '';
+    formData.color = '';
+    formData.user_id = null;
+    formData.collection_id = null;
+  };
   const submit = async () => {
-    console.log(formData)
+    console.log(formData);
     if (!formData.color) {
-      ElMessage.error('Please select a color')
-      return
+      ElMessage.error('Please select a color');
+      return;
     }
-    const api = formData.id ? apis[api_type].update : apis[api_type].create
+    const api = formData.id ? apis[api_type].update : apis[api_type].create;
     const data = {
       ...formData,
       color: rgba2flutterColor(formData.color),
-    }
-    console.log(data)
-    const res = await api(data).catch(_ => false)
+    };
+    console.log(data);
+    const res = await api(data).catch((_) => false);
     if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      formVisible.value = false
-      getList()
+      ElMessage.success(T('OperationSuccess'));
+      formVisible.value = false;
+      getList();
     }
-  }
+  };
 
   //query form collection
   const {
     listRes: collectionListRes,
     listQuery: collectionListQuery,
     getList: getCollectionList,
-  } = useCollectionRepositories(api_type)
-  collectionListQuery.page_size = 9999
+  } = useCollectionRepositories(api_type);
+  collectionListQuery.page_size = 9999;
   const changeUser = async (val) => {
-    formData.collection_id = 0
+    formData.collection_id = 0;
     if (!val) {
-      collectionListRes.list = []
+      collectionListRes.list = [];
     } else {
-      collectionListQuery.user_id = val
-      getCollectionList()
+      collectionListQuery.user_id = val;
+      getCollectionList();
     }
-  }
+  };
 
   const {
     listRes: collectionListResForUpdate,
     listQuery: collectionListQueryForUpdate,
     getList: getCollectionListForUpdate,
-  } = useCollectionRepositories(api_type)
-  collectionListQueryForUpdate.page_size = 9999
+  } = useCollectionRepositories(api_type);
+  collectionListQueryForUpdate.page_size = 9999;
   //create or update form collection
   const changeUserForUpdate = async (val) => {
-    listQuery.collection_id = null
+    listQuery.collection_id = null;
     if (!val) {
-      collectionListRes.list = []
+      collectionListRes.list = [];
     } else {
-      collectionListQuery.user_id = val
-      getCollectionListForUpdate()
+      collectionListQuery.user_id = val;
+      getCollectionListForUpdate();
     }
-  }
+  };
   return {
     listRes,
     listQuery,
@@ -209,6 +220,5 @@ export function useRepositories (api_type = 'my') {
     collectionListResForUpdate,
     changeUserForUpdate,
     getCollectionListForUpdate,
-
-  }
+  };
 }

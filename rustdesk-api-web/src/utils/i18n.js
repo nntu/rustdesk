@@ -1,36 +1,34 @@
-import en from '@/utils/i18n/en.json'
-import fr from '@/utils/i18n/fr.json'
-import zhCN from '@/utils/i18n/zh_CN.json'
-import ko from '@/utils/i18n/ko.json'
-import ru from '@/utils/i18n/ru.json'
-import es from '@/utils/i18n/es.json'
-import vi from '@/utils/i18n/vi.json'
-import zhTW from '@/utils/i18n/zh_TW.json'
-import { useAppStore } from '@/store/app'
+import { useAppStore } from '@/store/app';
+import en from '@/utils/i18n/en.json';
+import es from '@/utils/i18n/es.json';
+import fr from '@/utils/i18n/fr.json';
+import ko from '@/utils/i18n/ko.json';
+import ru from '@/utils/i18n/ru.json';
+import vi from '@/utils/i18n/vi.json';
+import zhCN from '@/utils/i18n/zh_CN.json';
+import zhTW from '@/utils/i18n/zh_TW.json';
 
 const trans = {
-  'en': en,
-  'fr': fr,
+  en: en,
+  fr: fr,
   'zh-CN': zhCN,
-  'ko': ko,
-  'ru': ru,
-  'es': es,
-  'vi': vi,
+  ko: ko,
+  ru: ru,
+  es: es,
+  vi: vi,
   'zh-TW': zhTW,
-}
+};
 
-export function T (key, params, num = 0) {
-  const appStore = useAppStore()
-  const lang = appStore.setting.lang
-  const tran = trans[lang]?.[key]
+export function T(key, params, num = 0) {
+  const appStore = useAppStore();
+  const lang = appStore.setting.lang;
+  const tran = trans[lang]?.[key];
   if (!tran) {
-    return key
+    return key;
   }
-  const msg = num > 1 ? (tran.Other ? tran.Other : tran.One) : tran.One
+  const msg = num > 1 ? (tran.Other ? tran.Other : tran.One) : tran.One;
   // msg looks like: {name} is name
   // params looks like: {name: 'zhangsan'}
   // replace
-  return msg.replace(/{(\w+)}/g, function (match, key) {
-    return params[key] || match
-  })
+  return msg.replace(/{(\w+)}/g, (match, key) => params[key] || match);
 }

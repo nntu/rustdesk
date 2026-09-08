@@ -11,31 +11,29 @@
 </template>
 
 <script>
-  import { defineComponent, computed } from 'vue'
-  import HeaderMenu from '@/layout/components/menu/index.vue'
-  import Setting from '@/layout/components/setting/index.vue'
-  import { useAppStore } from '@/store/app'
-  import GTags from '@/layout/components/tags/index.vue'
+import HeaderMenu from '@/layout/components/menu/index.vue';
+import Setting from '@/layout/components/setting/index.vue';
+import GTags from '@/layout/components/tags/index.vue';
+import { useAppStore } from '@/store/app';
+import { computed, defineComponent } from 'vue';
 
-  export default defineComponent({
-    name: 'LayerHeader',
-    created () {
-    },
-    components: { HeaderMenu, Setting, GTags },
-    watch: {},
-    setup (props) {
-      const appStore = useAppStore()
-      const setting = computed(() => appStore.setting)
-      const expandOrFoldSlider = () => {
-        appStore.sideCollapse()
-      }
-      return {
-        setting,
-        expandOrFoldSlider,
-      }
-    },
-
-  })
+export default defineComponent({
+  name: 'LayerHeader',
+  created() {},
+  components: { HeaderMenu, Setting, GTags },
+  watch: {},
+  setup(props) {
+    const appStore = useAppStore();
+    const setting = computed(() => appStore.setting);
+    const expandOrFoldSlider = () => {
+      appStore.sideCollapse();
+    };
+    return {
+      setting,
+      expandOrFoldSlider,
+    };
+  },
+});
 </script>
 
 <style scoped lang="scss">

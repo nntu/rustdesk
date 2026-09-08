@@ -37,32 +37,30 @@
 </template>
 
 <script setup>
-  import { useUserStore } from '@/store/user'
-  import { useAppStore } from '@/store/app'
-  import changePwdDialog from '@/components/changePwdDialog.vue'
-  import { onMounted, ref } from 'vue'
-  import { T } from '@/utils/i18n'
+import { useAppStore } from '@/store/app';
+import { useUserStore } from '@/store/user';
+import { onMounted, ref } from 'vue';
 
-  const userStore = useUserStore()
-  const user = userStore
-  const appStore = useAppStore()
+const userStore = useUserStore();
+const user = userStore;
+const appStore = useAppStore();
 
-  const logout = () => {
-    userStore.logout()
-    window.location.reload()
-  }
+const logout = () => {
+  userStore.logout();
+  window.location.reload();
+};
 
-  const changePwdVisible = ref(false)
-  const showChangePwd = () => {
-    changePwdVisible.value = true
-  }
-  const changeLang = (v) => {
-    appStore.changeLang(v)
-  }
-  onMounted(() => {
-    document.documentElement.classList.remove('dark')
-    localStorage.removeItem('vueuse-color-scheme')
-  })
+const changePwdVisible = ref(false);
+const showChangePwd = () => {
+  changePwdVisible.value = true;
+};
+const changeLang = (v) => {
+  appStore.changeLang(v);
+};
+onMounted(() => {
+  document.documentElement.classList.remove('dark');
+  localStorage.removeItem('vueuse-color-scheme');
+});
 </script>
 
 <style lang="scss" scoped>

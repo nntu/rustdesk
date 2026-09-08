@@ -108,44 +108,41 @@
 </template>
 
 <script setup>
-  import { onMounted, reactive, watch, ref, onActivated } from 'vue'
-  import { useRepositories } from '@/views/tag/index'
-  import { T } from '@/utils/i18n'
-  import { loadAllUsers } from '@/global'
+import { loadAllUsers } from '@/global';
+import { useRepositories } from '@/views/tag/index';
+import { onActivated, onMounted, watch } from 'vue';
 
-  const { allUsers, getAllUsers } = loadAllUsers()
-  onMounted(getAllUsers)
-  const {
-    listRes,
-    listQuery,
-    getList,
-    handlerQuery,
-    del,
-    formVisible,
-    formData,
-    toEdit,
-    toAdd,
-    submit,
-    activeChange,
-    currentColor,
+const { allUsers, getAllUsers } = loadAllUsers();
+onMounted(getAllUsers);
+const {
+  listRes,
+  listQuery,
+  getList,
+  handlerQuery,
+  del,
+  formVisible,
+  formData,
+  toEdit,
+  toAdd,
+  submit,
+  activeChange,
+  currentColor,
 
-    collectionListRes,
-    changeUser,
-    // getCollectionList,
+  collectionListRes,
+  changeUser,
+  // getCollectionList,
 
-    collectionListResForUpdate,
-    changeUserForUpdate,
-    // getCollectionListForUpdate,
-  } = useRepositories('admin')
+  collectionListResForUpdate,
+  changeUserForUpdate,
+  // getCollectionListForUpdate,
+} = useRepositories('admin');
 
-  onMounted(getList)
-  onActivated(getList)
+onMounted(getList);
+onActivated(getList);
 
-  watch(() => listQuery.page, getList)
+watch(() => listQuery.page, getList);
 
-  watch(() => listQuery.page_size, handlerQuery)
-
-
+watch(() => listQuery.page_size, handlerQuery);
 </script>
 
 <style scoped lang="scss">

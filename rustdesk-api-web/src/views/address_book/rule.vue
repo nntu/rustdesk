@@ -105,54 +105,51 @@
 </template>
 
 <script setup>
+import { useRepositories } from '@/views/address_book/rule';
+import { onActivated, onMounted, watch } from 'vue';
 
-  import { T } from '@/utils/i18n'
-  import { useRepositories } from '@/views/address_book/rule'
-  import { onActivated, onMounted, watch } from 'vue'
+const props = defineProps({
+  collection: {
+    type: Object,
+    required: true,
+  },
+  is_my: {
+    type: Number,
+    default: 0,
+  },
+});
+const {
+  listRes,
+  listQuery,
+  getList,
+  handlerQuery,
+  del,
+  formVisible,
+  formData,
+  toEdit,
+  toAdd,
+  submit,
+  rules,
+  types,
+  groups,
+  users,
+  getGroupUsers,
+  TYPE_G,
+  TYPE_U,
+  changeGId,
+} = useRepositories(props.is_my ? 'my' : 'admin');
 
-  const props = defineProps({
-    collection: {
-      type: Object,
-      required: true,
-    },
-    is_my: {
-      type: Number,
-      default: 0,
-    },
-  })
-  const {
-    listRes,
-    listQuery,
-    getList,
-    handlerQuery,
-    del,
-    formVisible,
-    formData,
-    toEdit,
-    toAdd,
-    submit,
-    rules,
-    types,
-    groups,
-    users,
-    getGroupUsers,
-    TYPE_G,
-    TYPE_U,
-    changeGId,
-  } = useRepositories(props.is_my ? 'my' : 'admin')
+formData.collection_id = props.collection.id;
+formData.user_id = props.collection.user_id;
+listQuery.collection_id = props.collection.id;
 
-  formData.collection_id = props.collection.id
-  formData.user_id = props.collection.user_id
-  listQuery.collection_id = props.collection.id
+onMounted(getGroupUsers);
+onMounted(getList);
+onActivated(getList);
 
-  onMounted(getGroupUsers)
-  onMounted(getList)
-  onActivated(getList)
+watch(() => listQuery.page, getList);
 
-  watch(() => listQuery.page, getList)
-
-  watch(() => listQuery.page_size, handlerQuery)
-
+watch(() => listQuery.page_size, handlerQuery);
 </script>
 
 <style scoped lang="scss">

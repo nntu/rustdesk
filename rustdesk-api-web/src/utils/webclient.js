@@ -1,100 +1,98 @@
-import Websock from '@/utils/webclient/websock'
-import * as rendezvous from '@/utils/webclient/rendezvous'
-import * as message from '@/utils/webclient/message'
-import { ElMessageBox } from 'element-plus'
-import { T } from '@/utils/i18n'
-import { useAppStore } from '@/store/app'
+import { useAppStore } from '@/store/app';
+import { T } from '@/utils/i18n';
+import * as message from '@/utils/webclient/message';
+import * as rendezvous from '@/utils/webclient/rendezvous';
+import Websock from '@/utils/webclient/websock';
+import { ElMessageBox } from 'element-plus';
 
-
-
-const app = useAppStore()
+const app = useAppStore();
 
 export const toWebClientLink = (row) => {
   //v2
-  console.log(app.setting.rustdeskConfig)
-  window.open(`${app.setting.rustdeskConfig.api_server}/webclient/#/${row.id}`)
-}
+  console.log(app.setting.rustdeskConfig);
+  window.open(`${app.setting.rustdeskConfig.api_server}/webclient/#/${row.id}`);
+};
 
-export async function getPeerSlat (id) {
-  const [addr, port] = app.setting.rustdeskConfig.id_server.split(':')
+export async function getPeerSlat(id) {
+  const [addr, port] = app.setting.rustdeskConfig.id_server.split(':');
   if (!addr) {
-    return
+    return;
   }
-  const scheme = location.protocol === 'https:' ? 'wss' : 'ws'
-  const ws_url = window.ws_host ? `${window.ws_host}/ws/id` : `${scheme}://${addr}:21118`
-  const ws = new Websock(ws_url, true)
-  await ws.open()
-  const conn_type = rendezvous.ConnType.DEFAULT_CONN
-  const nat_type = rendezvous.NatType.SYMMETRIC
+  const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws_url = window.ws_host ? `${window.ws_host}/ws/id` : `${scheme}://${addr}:21118`;
+  const ws = new Websock(ws_url, true);
+  await ws.open();
+  const conn_type = rendezvous.ConnType.DEFAULT_CONN;
+  const nat_type = rendezvous.NatType.SYMMETRIC;
   const punch_hole_request = rendezvous.PunchHoleRequest.fromPartial({
     id,
     licence_key: app.setting.rustdeskConfig.value.key || undefined,
     conn_type,
     nat_type,
     token: undefined,
-  })
-  ws.sendRendezvous({ punch_hole_request })
+  });
+  ws.sendRendezvous({ punch_hole_request });
   //rendezvous.RendezvousMessage
-  const msg = (await ws.next())
-  ws.close()
-  console.log(new Date() + ': Got relay response', msg)
-  const phr = msg.punch_hole_response
-  const rr = msg.relay_response
+  const msg = await ws.next();
+  ws.close();
+  console.log(new Date() + ': Got relay response', msg);
+  const phr = msg.punch_hole_response;
+  const rr = msg.relay_response;
   if (phr) {
     if (phr?.other_failure) {
-      this.msgbox('error', 'Error', phr?.other_failure)
-      return
+      this.msgbox('error', 'Error', phr?.other_failure);
+      return;
     }
-    if (phr.failure != rendezvous.PunchHoleResponse_Failure.UNRECOGNIZED) {
+    if (phr.failure !== rendezvous.PunchHoleResponse_Failure.UNRECOGNIZED) {
       switch (phr?.failure) {
         case rendezvous.PunchHoleResponse_Failure.ID_NOT_EXIST:
-          ElMessageBox.alert(T('IDNotExist'), T('Error'))
-          break
+          ElMessageBox.alert(T('IDNotExist'), T('Error'));
+          break;
         case rendezvous.PunchHoleResponse_Failure.OFFLINE:
-          ElMessageBox.alert(T('RemoteDesktopOffline'), T('Error'))
-          break
+          ElMessageBox.alert(T('RemoteDesktopOffline'), T('Error'));
+          break;
         case rendezvous.PunchHoleResponse_Failure.LICENSE_MISMATCH:
-          ElMessageBox.alert(T('KeyMismatch'), T('Error'))
-          break
+          ElMessageBox.alert(T('KeyMismatch'), T('Error'));
+          break;
         case rendezvous.PunchHoleResponse_Failure.LICENSE_OVERUSE:
-          ElMessageBox.alert(T('KeyOveruse'), T('Error'))
-          break
+          ElMessageBox.alert(T('KeyOveruse'), T('Error'));
+          break;
       }
     }
-    return false
-  } else if (rr) {
-    const uuid = rr.uuid
-    console.log(new Date() + ': Connecting to relay server')
+    return false;
+  }
+  if (rr) {
+    const uuid = rr.uuid;
+    console.log(new Date() + ': Connecting to relay server');
 
-    const _ws_url = window.ws_host ? `${window.ws_host}/ws/relay` : `${scheme}://${addr}:21119`
-    const _ws = new Websock(_ws_url, false)
-    await _ws.open()
-    console.log(new Date() + ': Connected to relay server')
+    const _ws_url = window.ws_host ? `${window.ws_host}/ws/relay` : `${scheme}://${addr}:21119`;
+    const _ws = new Websock(_ws_url, false);
+    await _ws.open();
+    console.log(new Date() + ': Connected to relay server');
     const request_relay = rendezvous.RequestRelay.fromPartial({
       licence_key: app.setting.rustdeskConfig.key || undefined,
       uuid,
-    })
-    _ws.sendRendezvous({ request_relay })
+    });
+    _ws.sendRendezvous({ request_relay });
 
     //PK is not supported yet
-    const public_key = message.PublicKey.fromPartial({})
-    _ws?.sendMessage({ public_key })
+    const public_key = message.PublicKey.fromPartial({});
+    _ws?.sendMessage({ public_key });
     // const secure = (await this.secure(pk)) || false;
     // globals.pushEvent("connection_ready", { secure, direct: false });
     while (true) {
-      const msg = (await _ws?.next())
-      console.log('msg', msg)
+      const msg = await _ws?.next();
+      console.log('msg', msg);
       if (msg?.hash) {
-        console.log('hash msg.....', msg.hash)
-        _ws.close()
-        return msg.hash
+        console.log('hash msg.....', msg.hash);
+        _ws.close();
+        return msg.hash;
       }
     }
-    return false
+    return false;
   }
-
 }
 
-export function getV2ShareUrl (token) {
-  return `${app.setting.rustdeskConfig.api_server}/webclient/#/?share_token=${token}`
+export function getV2ShareUrl(token) {
+  return `${app.setting.rustdeskConfig.api_server}/webclient/#/?share_token=${token}`;
 }

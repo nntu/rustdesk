@@ -10,33 +10,31 @@
 </template>
 
 <script>
-  import { defineComponent, ref, onMounted, watch, computed } from 'vue'
-  import { useRouteStore } from '@/store/router'
-  import MenuItem from '@/layout/components/menu/item.vue'
-  import { useRoute } from 'vue-router'
-  import { useAppStore } from '@/store/app'
+import MenuItem from '@/layout/components/menu/item.vue';
+import { useAppStore } from '@/store/app';
+import { useRouteStore } from '@/store/router';
+import { computed, defineComponent, ref } from 'vue';
+import { useRoute } from 'vue-router';
 
-  export default defineComponent({
-    name: 'Menu',
-    created () {
-    },
-    components: { MenuItem },
-    setup () {
-      const routes = ref([])
-      const route = useRoute()
-      const app = useAppStore()
-      const isCollapse = computed(() => app.setting.sideIsCollapse)
-      const activeIndex = computed(() => route.name)
+export default defineComponent({
+  name: 'Menu',
+  created() {},
+  components: { MenuItem },
+  setup() {
+    const routes = ref([]);
+    const route = useRoute();
+    const app = useAppStore();
+    const isCollapse = computed(() => app.setting.sideIsCollapse);
+    const activeIndex = computed(() => route.name);
 
-      routes.value = useRouteStore().routes
-      return {
-        routes,
-        activeIndex,
-        isCollapse,
-      }
-    },
-
-  })
+    routes.value = useRouteStore().routes;
+    return {
+      routes,
+      activeIndex,
+      isCollapse,
+    };
+  },
+});
 </script>
 
 <style lang="scss" scoped>

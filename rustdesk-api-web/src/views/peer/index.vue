@@ -231,348 +231,364 @@
 </template>
 
 <script setup>
-  import { computed, onActivated, onMounted, reactive, ref, watch } from 'vue'
-  import { useRouter } from 'vue-router'
-  import { batchRemove, create, list, remove, update } from '@/api/peer'
-  import { list as groupList } from '@/api/device_group'
-  import { ElMessage, ElMessageBox } from 'element-plus'
-  import { toWebClientLink } from '@/utils/webclient'
-  import { T } from '@/utils/i18n'
-  import { timeAgo } from '@/utils/time'
-  import { jsonToCsv, downBlob } from '@/utils/file'
-  import { loadAllUsers } from '@/global'
-  import { useAppStore } from '@/store/app'
-  import { connectByClient } from '@/utils/peer'
-  import { ArrowDown, ArrowUp, CopyDocument, Setting } from '@element-plus/icons-vue'
-  import { handleClipboard } from '@/utils/clipboard'
-  import { batchCreateFromPeers } from '@/api/address_book'
-  import { useRepositories as useCollectionRepositories } from '@/views/address_book/collection'
-  import createABForm from '@/views/peer/createABForm.vue'
-  import { UploadFilled } from '@element-plus/icons-vue'
+import { batchCreateFromPeers } from '@/api/address_book';
+import { list as groupList } from '@/api/device_group';
+import { batchRemove, create, list, remove, update } from '@/api/peer';
+import { loadAllUsers } from '@/global';
+import { useAppStore } from '@/store/app';
+import { downBlob, jsonToCsv } from '@/utils/file';
+import { T } from '@/utils/i18n';
+import { useRepositories as useCollectionRepositories } from '@/views/address_book/collection';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { computed, onActivated, onMounted, reactive, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
-  const router = useRouter()
-  const appStore = useAppStore()
+const router = useRouter();
+const appStore = useAppStore();
 
-  const toAutoDeploy = () => {
-    router.push('/my/client_config')
+const toAutoDeploy = () => {
+  router.push('/my/client_config');
+};
+
+//group
+const groupListRes = reactive({
+  list: [],
+  total: 0,
+  loading: false,
+});
+const groupListQuery = reactive({
+  page: 1,
+  page_size: 999,
+});
+const getGroupList = async () => {
+  groupListRes.loading = true;
+  const res = await groupList(groupListQuery).catch((_) => false);
+  groupListRes.loading = false;
+  if (res) {
+    groupListRes.list = res.data.list;
+    groupListRes.total = res.data.total;
+  }
+};
+onMounted(getGroupList);
+//
+
+const listRes = reactive({
+  list: [],
+  total: 0,
+  loading: false,
+});
+const listQuery = reactive({
+  page: 1,
+  page_size: 10,
+  time_ago: null,
+  id: '',
+  hostname: '',
+  username: '',
+  ip: '',
+});
+
+const getList = async () => {
+  listRes.loading = true;
+  const res = await list(listQuery).catch((_) => false);
+  listRes.loading = false;
+  if (res) {
+    listRes.list = res.data.list;
+    listRes.total = res.data.total;
+  }
+};
+const handlerQuery = () => {
+  if (listQuery.page === 1) {
+    getList();
+  } else {
+    listQuery.page = 1;
+  }
+};
+
+const del = async (row) => {
+  const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('Delete') }), {
+    confirmButtonText: T('Confirm'),
+    cancelButtonText: T('Cancel'),
+    type: 'warning',
+  }).catch((_) => false);
+  if (!cf) {
+    return false;
   }
 
-  //group
-  const groupListRes = reactive({
-    list: [], total: 0, loading: false,
-  })
-  const groupListQuery = reactive({
-    page: 1,
-    page_size: 999,
-  })
-  const getGroupList = async () => {
-    groupListRes.loading = true
-    const res = await groupList(groupListQuery).catch(_ => false)
-    groupListRes.loading = false
-    if (res) {
-      groupListRes.list = res.data.list
-      groupListRes.total = res.data.total
-    }
+  const res = await remove({ row_id: row.row_id }).catch((_) => false);
+  if (res) {
+    ElMessage.success(T('OperationSuccess'));
+    getList();
   }
-  onMounted(getGroupList)
-  //
+};
+onMounted(getList);
+onActivated(getList);
 
-  const listRes = reactive({
-    list: [], total: 0, loading: false,
-  })
-  const listQuery = reactive({
-    page: 1,
-    page_size: 10,
-    time_ago: null,
-    id: '',
-    hostname: '',
-    username: '',
-    ip: '',
-  })
+watch(() => listQuery.page, getList);
 
-  const getList = async () => {
-    listRes.loading = true
-    const res = await list(listQuery).catch(_ => false)
-    listRes.loading = false
-    if (res) {
-      listRes.list = res.data.list
-      listRes.total = res.data.total
-    }
+watch(() => listQuery.page_size, handlerQuery);
+
+const formVisible = ref(false);
+const formData = reactive({
+  row_id: 0,
+  group_id: null,
+  cpu: '',
+  hostname: '',
+  id: '',
+  memory: '',
+  os: '',
+  username: '',
+  uuid: '',
+  version: '',
+});
+
+const toEdit = (row) => {
+  formVisible.value = true;
+  //Assign the data in row to formData
+  Object.keys(formData).forEach((key) => {
+    formData[key] = row[key];
+  });
+};
+const toAdd = () => {
+  formVisible.value = true;
+  //Reset formData
+  formData.row_id = 0;
+  formData.cpu = '';
+  formData.hostname = '';
+  formData.id = '';
+  formData.memory = '';
+  formData.os = '';
+  formData.username = '';
+  formData.uuid = '';
+  formData.version = '';
+};
+const submit = async () => {
+  const api = formData.row_id ? update : create;
+  const res = await api(formData).catch((_) => false);
+  if (res) {
+    ElMessage.success(T('OperationSuccess'));
+    formVisible.value = false;
+    getList();
   }
-  const handlerQuery = () => {
-    if (listQuery.page === 1) {
-      getList()
-    } else {
-      listQuery.page = 1
-    }
+};
+
+const timeDis = (time) => {
+  const now = new Date().getTime();
+  const after = new Date(time * 1000).getTime();
+  return (now - after) / 1000;
+};
+
+const timeFilters = computed(() => [
+  { text: T('MinutesLess', { param: 1 }, 1), value: -60 },
+  { text: T('HoursLess', { param: 1 }, 1), value: -3600 },
+  { text: T('DaysLess', { param: 1 }, 1), value: -86400 },
+  { text: '---------', value: 0 },
+  { text: T('MinutesAgo', { param: 1 }, 1), value: 60 },
+  { text: T('HoursAgo', { param: 1 }, 1), value: 3600 },
+  { text: T('DaysAgo', { param: 1 }, 1), value: 86400 },
+  { text: T('MonthsAgo', { param: 1 }, 1), value: 2592000 },
+  // { text: T('YearsAgo', { param: 1 }, 1), value: 31536000 },
+]);
+
+const toExport = async () => {
+  const q = { ...listQuery };
+  q.page_size = 10000;
+  q.page = 1;
+  const res = await list(q).catch((_) => false);
+  if (res) {
+    const data = res.data.list.map((item) => {
+      item.last_online_time = item.last_online_time
+        ? new Date(item.last_online_time * 1000).toLocaleString()
+        : '-';
+      item.user_id = undefined;
+      item.user = undefined;
+      return item;
+    });
+    const csv = jsonToCsv(data);
+    downBlob(csv, 'peers.csv');
   }
+};
 
-  const del = async (row) => {
-    const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('Delete') }), {
-      confirmButtonText: T('Confirm'),
-      cancelButtonText: T('Cancel'),
-      type: 'warning',
-    }).catch(_ => false)
-    if (!cf) {
-      return false
-    }
-
-    const res = await remove({ row_id: row.row_id }).catch(_ => false)
-    if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      getList()
-    }
-  }
-  onMounted(getList)
-  onActivated(getList)
-
-  watch(() => listQuery.page, getList)
-
-  watch(() => listQuery.page_size, handlerQuery)
-
-  const formVisible = ref(false)
-  const formData = reactive({
-    row_id: 0,
-    group_id: null,
-    cpu: '',
-    hostname: '',
-    id: '',
-    memory: '',
-    os: '',
-    username: '',
-    uuid: '',
-    version: '',
-  })
-
-  const toEdit = (row) => {
-    formVisible.value = true
-    //Assign the data in row to formData
-    Object.keys(formData).forEach(key => {
-      formData[key] = row[key]
-    })
-  }
-  const toAdd = () => {
-    formVisible.value = true
-    //Reset formData
-    formData.row_id = 0
-    formData.cpu = ''
-    formData.hostname = ''
-    formData.id = ''
-    formData.memory = ''
-    formData.os = ''
-    formData.username = ''
-    formData.uuid = ''
-    formData.version = ''
-  }
-  const submit = async () => {
-    const api = formData.row_id ? update : create
-    const res = await api(formData).catch(_ => false)
-    if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      formVisible.value = false
-      getList()
-    }
-  }
-
-  const timeDis = (time) => {
-    let now = new Date().getTime()
-    let after = new Date(time * 1000).getTime()
-    return (now - after) / 1000
-  }
-
-  const timeFilters = computed(() => [
-    { text: T('MinutesLess', { param: 1 }, 1), value: -60 },
-    { text: T('HoursLess', { param: 1 }, 1), value: -3600 },
-    { text: T('DaysLess', { param: 1 }, 1), value: -86400 },
-    { text: '---------', value: 0 },
-    { text: T('MinutesAgo', { param: 1 }, 1), value: 60 },
-    { text: T('HoursAgo', { param: 1 }, 1), value: 3600 },
-    { text: T('DaysAgo', { param: 1 }, 1), value: 86400 },
-    { text: T('MonthsAgo', { param: 1 }, 1), value: 2592000 },
-    // { text: T('YearsAgo', { param: 1 }, 1), value: 31536000 },
-  ])
-
-  const toExport = async () => {
-    const q = { ...listQuery }
-    q.page_size = 10000
-    q.page = 1
-    const res = await list(q).catch(_ => false)
-    if (res) {
-      const data = res.data.list.map(item => {
-        item.last_online_time = item.last_online_time ? new Date(item.last_online_time * 1000).toLocaleString() : '-'
-        delete item.user_id
-        delete item.user
-        return item
-      })
-      const csv = jsonToCsv(data)
-      downBlob(csv, 'peers.csv')
-    }
-  }
-
-  const showImport = ref(false)
-  const canKeys = ['id', 'cpu', 'hostname', 'memory', 'os', 'username', 'uuid', 'version', 'group_id']
-  const parseCsv = (file) => {
-    const reader = new FileReader()
-    reader.onload = async (e) => {
-      const data = e.target.result
-      console.log(data)
-      //Assemble data
-      const rows = data.split('\n')
-      const keys = rows[0].split(',')
-      console.log(keys, rows.slice(1).map(row => row.split(',')))
-      const values = rows.slice(1).map(row => {
-        const obj = {}
+const showImport = ref(false);
+const canKeys = [
+  'id',
+  'cpu',
+  'hostname',
+  'memory',
+  'os',
+  'username',
+  'uuid',
+  'version',
+  'group_id',
+];
+const parseCsv = (file) => {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const data = e.target.result;
+    console.log(data);
+    //Assemble data
+    const rows = data.split('\n');
+    const keys = rows[0].split(',');
+    console.log(
+      keys,
+      rows.slice(1).map((row) => row.split(',')),
+    );
+    const values = rows
+      .slice(1)
+      .map((row) => {
+        const obj = {};
         row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).forEach((v, i) => {
           //Remove both sides"
-          obj[keys[i]] = v.trim().replace(/^"|"$/g, '')
-        })
-        return obj
-      }).filter(item => item.id)
-      // console.log(values)
-      //Remove unnecessary keys
-      values.forEach(item => {
-        item.group_id = parseInt(item.group_id)
-        Object.keys(item).forEach(key => {
-          if (!canKeys.includes(key)) {
-            delete item[key]
-          }
-        })
+          obj[keys[i]] = v.trim().replace(/^"|"$/g, '');
+        });
+        return obj;
       })
-      console.log(values)
-      const pa = []
-      values.map(item => {
-        pa.push(create(item))
-      })
-      const res = await Promise.all(pa).catch(_ => false)
-      if (res) {
-        ElMessage.success(T('OperationSuccess'))
-        getList()
-      }
-
-    }
-    reader.readAsText(file)
-    return false
-  }
-  const toImport = () => {
-    ElMessage.warning('Not yet implemented')
-  }
-
-  const ABFormVisible = ref(false)
-  const clickRow = ref({})
-  const toAddressBook = (row) => {
-    clickRow.value = row
-    ABFormVisible.value = true
-  }
-
-  const multipleSelection = ref([])
-  const handleSelectionChange = (val) => {
-    multipleSelection.value = val
-  }
-  const toBatchDelete = async () => {
-    if (!multipleSelection.value.length) {
-      ElMessage.warning(T('PleaseSelectData'))
-      return false
-    }
-    const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('BatchDelete') }), {
-      confirmButtonText: T('Confirm'),
-      cancelButtonText: T('Cancel'),
-      type: 'warning',
-    }).catch(_ => false)
-    if (!cf) {
-      return false
-    }
-
-    const res = await batchRemove({ row_ids: multipleSelection.value.map(i => i.row_id) }).catch(_ => false)
+      .filter((item) => item.id);
+    // console.log(values)
+    //Remove unnecessary keys
+    values.forEach((item) => {
+      item.group_id = Number.parseInt(item.group_id);
+      Object.keys(item).forEach((key) => {
+        if (!canKeys.includes(key)) {
+          delete item[key];
+        }
+      });
+    });
+    console.log(values);
+    const pa = [];
+    values.map((item) => {
+      pa.push(create(item));
+    });
+    const res = await Promise.all(pa).catch((_) => false);
     if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      getList()
+      ElMessage.success(T('OperationSuccess'));
+      getList();
     }
+  };
+  reader.readAsText(file);
+  return false;
+};
+const toImport = () => {
+  ElMessage.warning('Not yet implemented');
+};
+
+const ABFormVisible = ref(false);
+const clickRow = ref({});
+const toAddressBook = (row) => {
+  clickRow.value = row;
+  ABFormVisible.value = true;
+};
+
+const multipleSelection = ref([]);
+const handleSelectionChange = (val) => {
+  multipleSelection.value = val;
+};
+const toBatchDelete = async () => {
+  if (!multipleSelection.value.length) {
+    ElMessage.warning(T('PleaseSelectData'));
+    return false;
+  }
+  const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('BatchDelete') }), {
+    confirmButtonText: T('Confirm'),
+    cancelButtonText: T('Cancel'),
+    type: 'warning',
+  }).catch((_) => false);
+  if (!cf) {
+    return false;
   }
 
-  // Add to address book in batches start
-  const { allUsers, getAllUsers } = loadAllUsers()
-  onMounted(getAllUsers)
-  const {
-    listRes: collectionListResForBatchCreateAB,
-    listQuery: collectionListQueryForBatchCreateAB,
-    getList: getCollectionListForBatchCreateAB,
-  } = useCollectionRepositories('admin')
-  collectionListQueryForBatchCreateAB.page_size = 9999
-  const changeUserForBatchCreateAB = (val) => {
-    batchABFormData.value.collection_id = 0
-    collectionListQueryForBatchCreateAB.user_id = val
-    getCollectionListForBatchCreateAB()
+  const res = await batchRemove({ row_ids: multipleSelection.value.map((i) => i.row_id) }).catch(
+    (_) => false,
+  );
+  if (res) {
+    ElMessage.success(T('OperationSuccess'));
+    getList();
   }
-  const batchABFormVisible = ref(false)
-  const toBatchAddToAB = () => {
-    batchABFormVisible.value = true
-  }
-  const batchABFormData = ref({
-    collection_id: 0,
-    tags: [],
-    peer_ids: [],
-    user_id: null,
-  })
-  const submitBatchAddToAB = async () => {
-    if (multipleSelection.value.length === 0) {
-      ElMessage.warning(T('PleaseSelectData'))
-      return false
-    }
-    batchABFormData.value.peer_ids = multipleSelection.value.map(i => i.row_id)
-    if (!batchABFormData.value.peer_ids.length) {
-      ElMessage.warning(T('PleaseSelectData'))
-      return false
-    }
+};
 
-    const res = await batchCreateFromPeers(batchABFormData.value).catch(_ => false)
-    if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      batchABFormVisible.value = false
-    }
+// Add to address book in batches start
+const { allUsers, getAllUsers } = loadAllUsers();
+onMounted(getAllUsers);
+const {
+  listRes: collectionListResForBatchCreateAB,
+  listQuery: collectionListQueryForBatchCreateAB,
+  getList: getCollectionListForBatchCreateAB,
+} = useCollectionRepositories('admin');
+collectionListQueryForBatchCreateAB.page_size = 9999;
+const changeUserForBatchCreateAB = (val) => {
+  batchABFormData.value.collection_id = 0;
+  collectionListQueryForBatchCreateAB.user_id = val;
+  getCollectionListForBatchCreateAB();
+};
+const batchABFormVisible = ref(false);
+const toBatchAddToAB = () => {
+  batchABFormVisible.value = true;
+};
+const batchABFormData = ref({
+  collection_id: 0,
+  tags: [],
+  peer_ids: [],
+  user_id: null,
+});
+const submitBatchAddToAB = async () => {
+  if (multipleSelection.value.length === 0) {
+    ElMessage.warning(T('PleaseSelectData'));
+    return false;
   }
-  // Add to address book in batches end
-
-  const columnSettingVisible = ref(false)
-  const allColumns = ref([
-    { name: 'id', visible: true, label: 'Id' },
-    { name: 'cpu', visible: true, label: 'Cpu' },
-    { name: 'hostname', visible: true, label: 'Hostname' },
-    { name: 'memory', visible: true, label: 'Memory' },
-    { name: 'os', visible: true, label: 'Os' },
-    { name: 'last_online_time', visible: true, label: 'LastOnlineTime' },
-    { name: 'last_online_ip', visible: true, label: 'LastOnlineIp' },
-    { name: 'username', visible: true, label: 'Username' },
-    { name: 'group_id', visible: true, label: 'Group' },
-    { name: 'uuid', visible: true, label: 'Uuid' },
-    { name: 'version', visible: true, label: 'Version' },
-    { name: 'alias', visible: true, label: 'Alias' },
-    { name: 'created_at', visible: true, label: 'CreatedAt' },
-    { name: 'updated_at', visible: true, label: 'UpdatedAt' },
-  ])
-  const visibleColumns = ref(JSON.parse(localStorage.getItem('peer_visible_columns')) || allColumns.value)
-  const showColumnSetting = () => {
-    columnSettingVisible.value = true
-  }
-  const saveColumnSetting = () => {
-    localStorage.setItem('peer_visible_columns', JSON.stringify(visibleColumns.value))
-    ElMessage.success(T('OperationSuccess'))
-    columnSettingVisible.value = false
+  batchABFormData.value.peer_ids = multipleSelection.value.map((i) => i.row_id);
+  if (!batchABFormData.value.peer_ids.length) {
+    ElMessage.warning(T('PleaseSelectData'));
+    return false;
   }
 
-  const upColumn = (index) => {
-    if (index === 0) return
-    const col = visibleColumns.value[index]
-    visibleColumns.value.splice(index, 1)
-    visibleColumns.value.splice(index - 1, 0, col)
-
+  const res = await batchCreateFromPeers(batchABFormData.value).catch((_) => false);
+  if (res) {
+    ElMessage.success(T('OperationSuccess'));
+    batchABFormVisible.value = false;
   }
-  const downColumn = (index) => {
-    if (index === visibleColumns.value.length - 1) return
-    const col = visibleColumns.value[index]
-    visibleColumns.value.splice(index, 1)
-    visibleColumns.value.splice(index + 1, 0, col)
+};
+// Add to address book in batches end
 
-  }
+const columnSettingVisible = ref(false);
+const allColumns = ref([
+  { name: 'id', visible: true, label: 'Id' },
+  { name: 'cpu', visible: true, label: 'Cpu' },
+  { name: 'hostname', visible: true, label: 'Hostname' },
+  { name: 'memory', visible: true, label: 'Memory' },
+  { name: 'os', visible: true, label: 'Os' },
+  { name: 'last_online_time', visible: true, label: 'LastOnlineTime' },
+  { name: 'last_online_ip', visible: true, label: 'LastOnlineIp' },
+  { name: 'username', visible: true, label: 'Username' },
+  { name: 'group_id', visible: true, label: 'Group' },
+  { name: 'uuid', visible: true, label: 'Uuid' },
+  { name: 'version', visible: true, label: 'Version' },
+  { name: 'alias', visible: true, label: 'Alias' },
+  { name: 'created_at', visible: true, label: 'CreatedAt' },
+  { name: 'updated_at', visible: true, label: 'UpdatedAt' },
+]);
+const visibleColumns = ref(
+  JSON.parse(localStorage.getItem('peer_visible_columns')) || allColumns.value,
+);
+const showColumnSetting = () => {
+  columnSettingVisible.value = true;
+};
+const saveColumnSetting = () => {
+  localStorage.setItem('peer_visible_columns', JSON.stringify(visibleColumns.value));
+  ElMessage.success(T('OperationSuccess'));
+  columnSettingVisible.value = false;
+};
+
+const upColumn = (index) => {
+  if (index === 0) return;
+  const col = visibleColumns.value[index];
+  visibleColumns.value.splice(index, 1);
+  visibleColumns.value.splice(index - 1, 0, col);
+};
+const downColumn = (index) => {
+  if (index === visibleColumns.value.length - 1) return;
+  const col = visibleColumns.value[index];
+  visibleColumns.value.splice(index, 1);
+  visibleColumns.value.splice(index + 1, 0, col);
+};
 </script>
 
 <style scoped lang="scss">

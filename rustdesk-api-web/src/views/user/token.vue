@@ -58,47 +58,39 @@
 </template>
 
 <script setup>
-  import { onActivated, onMounted, ref, watch } from 'vue'
-  import { loadAllUsers } from '@/global'
-  import { useRepositories } from '@/views/user/token.js'
-  import { T } from '@/utils/i18n'
+import { loadAllUsers } from '@/global';
+import { useRepositories } from '@/views/user/token.js';
+import { onActivated, onMounted, ref, watch } from 'vue';
 
-  const { allUsers, getAllUsers } = loadAllUsers()
-  getAllUsers()
+const { allUsers, getAllUsers } = loadAllUsers();
+getAllUsers();
 
-  const {
-    listRes,
-    listQuery,
-    getList,
-    handlerQuery,
-    del,
-    batchDelete,
-  } = useRepositories()
+const { listRes, listQuery, getList, handlerQuery, del, batchDelete } = useRepositories();
 
-  onMounted(getList)
-  onActivated(getList)
+onMounted(getList);
+onActivated(getList);
 
-  watch(() => listQuery.page, getList)
+watch(() => listQuery.page, getList);
 
-  watch(() => listQuery.page_size, handlerQuery)
-  const maskToken = (token) => {
-    return token.slice(0, 4) + '****' + token.slice(-4)
+watch(() => listQuery.page_size, handlerQuery);
+const maskToken = (token) => {
+  return token.slice(0, 4) + '****' + token.slice(-4);
+};
+const expired = (row) => {
+  const now = new Date().getTime();
+  return row.expired_at * 1000 < now;
+};
+
+const multipleSelection = ref([]);
+const handleSelectionChange = (val) => {
+  multipleSelection.value = val;
+};
+const toBatchDelete = () => {
+  if (multipleSelection.value.length === 0) {
+    return;
   }
-  const expired = (row) => {
-    const now = new Date().getTime()
-    return row.expired_at * 1000 < now
-  }
-
-  const multipleSelection = ref([])
-  const handleSelectionChange = (val) => {
-    multipleSelection.value = val
-  }
-  const toBatchDelete = () => {
-    if (multipleSelection.value.length === 0) {
-      return
-    }
-    batchDelete(multipleSelection.value.map(v => v.id))
-  }
+  batchDelete(multipleSelection.value.map((v) => v.id));
+};
 </script>
 
 <style scoped lang="scss">

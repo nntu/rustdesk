@@ -52,36 +52,27 @@
 </template>
 
 <script setup>
-  import { onActivated, onMounted, ref, watch } from 'vue'
-  import { useRepositories } from '@/views/audit/reponsitories'
-  import { T } from '@/utils/i18n'
+import { useRepositories } from '@/views/audit/reponsitories';
+import { onActivated, onMounted, ref, watch } from 'vue';
 
-  const {
-    listRes,
-    listQuery,
-    getList,
-    handlerQuery,
-    del,
-    batchdel,
-    toExport,
-  } = useRepositories()
+const { listRes, listQuery, getList, handlerQuery, del, batchdel, toExport } = useRepositories();
 
-  onMounted(getList)
-  onActivated(getList)
+onMounted(getList);
+onActivated(getList);
 
-  watch(() => listQuery.page, getList)
+watch(() => listQuery.page, getList);
 
-  watch(() => listQuery.page_size, handlerQuery)
-  const multipleSelection = ref([])
-  const handleSelectionChange = (val) => {
-    multipleSelection.value = val
+watch(() => listQuery.page_size, handlerQuery);
+const multipleSelection = ref([]);
+const handleSelectionChange = (val) => {
+  multipleSelection.value = val;
+};
+const toBatchDelete = () => {
+  if (multipleSelection.value.length === 0) {
+    return;
   }
-  const toBatchDelete = () => {
-    if (multipleSelection.value.length === 0) {
-      return
-    }
-    batchdel(multipleSelection.value)
-  }
+  batchdel(multipleSelection.value);
+};
 </script>
 
 <style scoped lang="scss">

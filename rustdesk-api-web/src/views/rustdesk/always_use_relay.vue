@@ -17,50 +17,52 @@
   </el-card>
 </template>
 <script setup>
+import { sendCmd } from '@/api/rustdesk';
+import { T } from '@/utils/i18n';
+import { ID_TARGET } from '@/views/rustdesk/options';
+import { ElMessage } from 'element-plus';
+import { reactive, watch } from 'vue';
 
-  import { T } from '@/utils/i18n'
-  import { reactive, watch } from 'vue'
-  import { sendCmd } from '@/api/rustdesk'
-  import { ElMessage } from 'element-plus'
-  import { ID_TARGET } from '@/views/rustdesk/options'
+const emits = defineEmits('success');
+const props = defineProps({
+  canSend: Boolean,
+});
 
-  const emits = defineEmits('success')
-  const props = defineProps({
-    canSend: Boolean,
-  })
-
-  const form = reactive({
-    cmd: 'aur',
-    option: '',
-    target: ID_TARGET,
-    value: 0,
-    loading: false,
-  })
-  const get = async () => {
-    form.loading = true
-    const res = await sendCmd({ cmd: 'aur', target: ID_TARGET }).catch(_ => false)
-    form.loading = false
-    if (res) {
-      if (res.data === 'ALWAYS_USE_RELAY: true' || res.data === 'ALWAYS_USE_RELAY: true\n') {
-        form.option = 'Y'
-      } else {
-        form.option = 'N'
-      }
+const form = reactive({
+  cmd: 'aur',
+  option: '',
+  target: ID_TARGET,
+  value: 0,
+  loading: false,
+});
+const get = async () => {
+  form.loading = true;
+  const res = await sendCmd({ cmd: 'aur', target: ID_TARGET }).catch((_) => false);
+  form.loading = false;
+  if (res) {
+    if (res.data === 'ALWAYS_USE_RELAY: true' || res.data === 'ALWAYS_USE_RELAY: true\n') {
+      form.option = 'Y';
+    } else {
+      form.option = 'N';
     }
   }
-  const save = async () => {
-    const res = await sendCmd(form).catch(_ => false)
-    if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      emits('success')
-    }
+};
+const save = async () => {
+  const res = await sendCmd(form).catch((_) => false);
+  if (res) {
+    ElMessage.success(T('OperationSuccess'));
+    emits('success');
   }
+};
 
-  watch(() => props.canSend, (v) => {
+watch(
+  () => props.canSend,
+  (v) => {
     if (v) {
-      get()
+      get();
     }
-  })
+  },
+);
 </script>
 
 

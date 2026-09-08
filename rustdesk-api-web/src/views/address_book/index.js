@@ -1,28 +1,41 @@
-import { reactive, ref } from 'vue'
-import { create as admin_create, list as admin_list, remove as admin_remove, update as admin_update } from '@/api/address_book'
-import { batchUpdateTags, list as my_list, create as my_create, update as my_update, remove as my_remove } from '@/api/my/address_book'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { T } from '@/utils/i18n'
-import { useRepositories as useCollectionRepositories } from '@/views/address_book/collection'
-import { useRepositories as useTagRepositories } from '@/views/tag/index'
-import { simpleData } from '@/api/peer'
+import {
+  create as admin_create,
+  list as admin_list,
+  remove as admin_remove,
+  update as admin_update,
+} from '@/api/address_book';
+import {
+  batchUpdateTags,
+  create as my_create,
+  list as my_list,
+  remove as my_remove,
+  update as my_update,
+} from '@/api/my/address_book';
+import { simpleData } from '@/api/peer';
+import { T } from '@/utils/i18n';
+import { useRepositories as useCollectionRepositories } from '@/views/address_book/collection';
+import { useRepositories as useTagRepositories } from '@/views/tag/index';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { reactive, ref } from 'vue';
 
 const apis = {
   admin: { list: admin_list, remove: admin_remove, update: admin_update, create: admin_create },
   my: { list: my_list, remove: my_remove, create: my_create, update: my_update },
-}
+};
 
-export function useRepositories (api_type = 'my') {
+export function useRepositories(api_type = 'my') {
   const {
     listRes: collectionListRes,
     listQuery: collectionListQuery,
     getList: getCollectionList,
-  } = useCollectionRepositories(api_type)
-  collectionListQuery.page_size = 9999
+  } = useCollectionRepositories(api_type);
+  collectionListQuery.page_size = 9999;
 
   const listRes = reactive({
-    list: [], total: 0, loading: false,
-  })
+    list: [],
+    total: 0,
+    loading: false,
+  });
   const listQuery = reactive({
     page: 1,
     page_size: 10,
@@ -31,54 +44,54 @@ export function useRepositories (api_type = 'my') {
     username: null,
     hostname: null,
     collection_id: null,
-  })
+  });
 
   const getList = async () => {
-    listRes.loading = true
-    const res = await apis[api_type].list(listQuery).catch(_ => false)
-    listRes.loading = false
+    listRes.loading = true;
+    const res = await apis[api_type].list(listQuery).catch((_) => false);
+    listRes.loading = false;
     if (res) {
-      const ids = res.data.list.map(item => item.id)
+      const ids = res.data.list.map((item) => item.id);
       if (ids.length) {
-        const peer_data = await simpleData({ ids }).catch(_ => false)
+        const peer_data = await simpleData({ ids }).catch((_) => false);
         if (peer_data) {
-          res.data.list.forEach(item => {
-            const peer = peer_data.data.list.find(peer => peer.id === item.id)
+          res.data.list.forEach((item) => {
+            const peer = peer_data.data.list.find((peer) => peer.id === item.id);
             if (peer) {
-              item.peer = peer
+              item.peer = peer;
             }
-          })
+          });
         }
       }
 
-      listRes.list = res.data.list
-      listRes.total = res.data.total
+      listRes.list = res.data.list;
+      listRes.total = res.data.total;
     }
-  }
+  };
   const handlerQuery = () => {
     if (listQuery.page === 1) {
-      getList()
+      getList();
     } else {
-      listQuery.page = 1
+      listQuery.page = 1;
     }
-  }
+  };
 
   const del = async (row) => {
     const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('Delete') }), {
       confirmButtonText: T('Confirm'),
       cancelButtonText: T('Cancel'),
       type: 'warning',
-    }).catch(_ => false)
+    }).catch((_) => false);
     if (!cf) {
-      return false
+      return false;
     }
 
-    const res = await apis[api_type].remove({ row_id: row.row_id }).catch(_ => false)
+    const res = await apis[api_type].remove({ row_id: row.row_id }).catch((_) => false);
     if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      getList()
+      ElMessage.success(T('OperationSuccess'));
+      getList();
     }
-  }
+  };
 
   //Create or modify
   const platformList = [
@@ -86,129 +99,127 @@ export function useRepositories (api_type = 'my') {
     { label: 'Linux', value: 'Linux', icon: 'linux' },
     { label: 'Mac OS', value: 'Mac OS', icon: 'mac' },
     { label: 'Android', value: 'Android', icon: 'android' },
-  ]
-  const formVisible = ref(false)
+  ];
+  const formVisible = ref(false);
   const formData = reactive({
-    'row_id': 0,
-    'alias': '',
-    'forceAlwaysRelay': false,
-    'hash': '',
-    'hostname': '',
-    'id': '',
-    'loginName': '',
-    'online': false,
-    'password': '',
-    'platform': '',
-    'rdpPort': '',
-    'rdpUsername': '',
-    'sameServer': false,
-    'tags': [],
-    'user_id': null,
+    row_id: 0,
+    alias: '',
+    forceAlwaysRelay: false,
+    hash: '',
+    hostname: '',
+    id: '',
+    loginName: '',
+    online: false,
+    password: '',
+    platform: '',
+    rdpPort: '',
+    rdpUsername: '',
+    sameServer: false,
+    tags: [],
+    user_id: null,
     user_ids: [],
-    'username': '',
+    username: '',
     collection_id: null,
-  })
+  });
   const {
     listRes: collectionListResForUpdate,
     listQuery: collectionListQueryForUpdate,
     getList: getCollectionListForUpdate,
-  } = useCollectionRepositories(api_type)
-  collectionListQueryForUpdate.page_size = 9999
+  } = useCollectionRepositories(api_type);
+  collectionListQueryForUpdate.page_size = 9999;
   const {
     listRes: tagListRes,
     listQuery: tagListQuery,
     getList: getTagList,
-  } = useTagRepositories(api_type)
-  tagListQuery.page_size = 9999
+  } = useTagRepositories(api_type);
+  tagListQuery.page_size = 9999;
 
   const toEdit = (row) => {
-    formVisible.value = true
+    formVisible.value = true;
     //Assign the data in row to formData
-    Object.keys(formData).forEach(key => {
-      formData[key] = row[key]
-    })
-    collectionListQueryForUpdate.user_id = row.user_id
-    tagListQuery.collection_id = row.collection_id
-    getCollectionListForUpdate()
-    getTagList()
-
-  }
+    Object.keys(formData).forEach((key) => {
+      formData[key] = row[key];
+    });
+    collectionListQueryForUpdate.user_id = row.user_id;
+    tagListQuery.collection_id = row.collection_id;
+    getCollectionListForUpdate();
+    getTagList();
+  };
   const toAdd = () => {
-    formVisible.value = true
+    formVisible.value = true;
     //Reset formData
-    formData.row_id = 0
-    formData.alias = ''
-    formData.forceAlwaysRelay = false
-    formData.hash = ''
-    formData.hostname = ''
-    formData.id = ''
-    formData.loginName = ''
-    formData.online = false
-    formData.password = ''
-    formData.platform = ''
-    formData.rdpPort = ''
-    formData.rdpUsername = ''
-    formData.sameServer = false
-    formData.tags = []
-    formData.user_id = null
-    formData.username = ''
-
-  }
+    formData.row_id = 0;
+    formData.alias = '';
+    formData.forceAlwaysRelay = false;
+    formData.hash = '';
+    formData.hostname = '';
+    formData.id = '';
+    formData.loginName = '';
+    formData.online = false;
+    formData.password = '';
+    formData.platform = '';
+    formData.rdpPort = '';
+    formData.rdpUsername = '';
+    formData.sameServer = false;
+    formData.tags = [];
+    formData.user_id = null;
+    formData.username = '';
+  };
   const submit = async () => {
-    const api = formData.row_id ? apis[api_type].update : apis[api_type].create
-    const res = await api(formData).catch(_ => false)
+    const api = formData.row_id ? apis[api_type].update : apis[api_type].create;
+    const res = await api(formData).catch((_) => false);
     if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      formVisible.value = false
-      getList()
+      ElMessage.success(T('OperationSuccess'));
+      formVisible.value = false;
+      getList();
     }
-  }
+  };
 
   const changeQueryUser = async (val) => {
-    tagListRes.list = []
-    listQuery.collection_id = null
+    tagListRes.list = [];
+    listQuery.collection_id = null;
     if (!val) {
-      collectionListRes.list = []
+      collectionListRes.list = [];
     } else {
-      collectionListQuery.user_id = val
-      getCollectionList()
+      collectionListQuery.user_id = val;
+      getCollectionList();
     }
-  }
+  };
   const changeUserForUpdate = async (val) => {
-    tagListRes.list = []
-    formData.tags = []
-    formData.collection_id = 0
+    tagListRes.list = [];
+    formData.tags = [];
+    formData.collection_id = 0;
     if (!val) {
-      collectionListResForUpdate.list = []
+      collectionListResForUpdate.list = [];
     } else {
-      collectionListQueryForUpdate.user_id = val
-      getCollectionListForUpdate()
+      collectionListQueryForUpdate.user_id = val;
+      getCollectionListForUpdate();
     }
-  }
+  };
   const changeCollectionForUpdate = async (val) => {
-    tagListRes.list = []
-    formData.tags = []
-    tagListQuery.user_id = formData.user_id
-    tagListQuery.collection_id = val
-    getTagList()
-  }
+    tagListRes.list = [];
+    formData.tags = [];
+    tagListQuery.user_id = formData.user_id;
+    tagListQuery.collection_id = val;
+    getTagList();
+  };
 
   const fromPeer = (peer) => {
-    formData.id = peer.id
-    formData.username = peer.username
-    formData.hostname = peer.hostname
+    formData.id = peer.id;
+    formData.username = peer.username;
+    formData.hostname = peer.hostname;
     //match os
     if (peer.os.indexOf('windows') !== -1) {
-      formData.platform = platformList.find(item => item.label === 'Windows').value
+      formData.platform = platformList.find((item) => item.label === 'Windows').value;
     } else if (peer.os.indexOf('linux') !== -1) {
-      formData.platform = platformList.find(item => item.label === 'Linux').value
+      formData.platform = platformList.find((item) => item.label === 'Linux').value;
     } else if (peer.os.indexOf('android') !== -1) {
-      formData.platform = platformList.find(item => item.label === 'Android').value
+      formData.platform = platformList.find((item) => item.label === 'Android').value;
     } else if (peer.os.indexOf('mac') !== -1) {
-      formData.platform = platformList.find(item => item.label === 'Mac OS').value
+      formData.platform = platformList.find((item) => item.label === 'Mac OS').value;
     }
-    formData.uuid = peer.uuid
-  }
+    formData.uuid = peer.uuid;
+  };
 
   return {
     listRes,
@@ -238,46 +249,46 @@ export function useRepositories (api_type = 'my') {
     tagListRes,
 
     fromPeer,
-  }
+  };
 }
 
-export function useBatchUpdateTagsRepositories () {
+export function useBatchUpdateTagsRepositories() {
   const {
     listRes: tagListRes,
     listQuery: tagListQuery,
     getList: getTagList,
-  } = useTagRepositories('my')
-  tagListQuery.page_size = 9999
+  } = useTagRepositories('my');
+  tagListQuery.page_size = 9999;
 
-  const visible = ref(false)
+  const visible = ref(false);
   const show = () => {
     if (formData.value.row_ids.length === 0) {
-      ElMessage.warning(T('PleaseSelectData'))
-      return
+      ElMessage.warning(T('PleaseSelectData'));
+      return;
     }
-    visible.value = true
-  }
+    visible.value = true;
+  };
   const formData = ref({
     tags: [],
     row_ids: [],
-  })
+  });
   const submit = async () => {
     if (formData.value.row_ids.length === 0) {
-      ElMessage.warning(T('PleaseSelectData'))
-      return false
+      ElMessage.warning(T('PleaseSelectData'));
+      return false;
     }
     if (formData.value.tags.length === 0) {
-      ElMessage.warning(T('PleaseSelectData'))
-      return false
+      ElMessage.warning(T('PleaseSelectData'));
+      return false;
     }
-    const res = await batchUpdateTags(formData.value).catch(_ => false)
+    const res = await batchUpdateTags(formData.value).catch((_) => false);
     if (res) {
-      ElMessage.success(T('Success'))
-      visible.value = false
-      return true
+      ElMessage.success(T('Success'));
+      visible.value = false;
+      return true;
     }
-    return false
-  }
+    return false;
+  };
 
   return {
     tagListQuery,
@@ -288,5 +299,5 @@ export function useBatchUpdateTagsRepositories () {
     formData,
     show,
     submit,
-  }
+  };
 }

@@ -116,168 +116,163 @@
 
 
 <script setup>
-  import { create, list, remove, sendCmd, update } from '@/api/rustdesk'
-  import { onMounted, reactive, ref } from 'vue'
-  import { T } from '@/utils/i18n'
-  import { ElMessage, ElMessageBox } from 'element-plus'
-  import { ID_TARGET, RELAY_TARGET } from '@/views/rustdesk/options'
-  import blocklist from '@/views/rustdesk/blocklist.vue'
-  import blacklist from '@/views/rustdesk/blacklist.vue'
-  import alwaysUseRelay from '@/views/rustdesk/always_use_relay.vue'
-  import RelayServers from '@/views/rustdesk/relay_servers.vue'
-  import mustLogin from '@/views/rustdesk/must_login.vue'
-  import usage from '@/views/rustdesk/usage.vue'
+import { create, list, remove, sendCmd, update } from '@/api/rustdesk';
+import { T } from '@/utils/i18n';
+import { ID_TARGET, RELAY_TARGET } from '@/views/rustdesk/options';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { onMounted, reactive, ref } from 'vue';
 
-  const activeName = ref('Simple')
+const activeName = ref('Simple');
 
-  const canSendIdServerCmd = ref(false)
-  const checkCanSendIdServerCmd = async () => {
-    const res = await sendCmd({ cmd: 'h', target: ID_TARGET }).catch(_ => false)
-    canSendIdServerCmd.value = !!res.data
-    if (canSendIdServerCmd.value) {
-      const commands = res.data.split('\n').filter(i => i)
-      console.log(commands)
-      canControlMustLogin.value = commands.some(i => i.includes('must-login'))
-    }
+const canSendIdServerCmd = ref(false);
+const checkCanSendIdServerCmd = async () => {
+  const res = await sendCmd({ cmd: 'h', target: ID_TARGET }).catch((_) => false);
+  canSendIdServerCmd.value = !!res.data;
+  if (canSendIdServerCmd.value) {
+    const commands = res.data.split('\n').filter((i) => i);
+    console.log(commands);
+    canControlMustLogin.value = commands.some((i) => i.includes('must-login'));
   }
+};
 
-  const canControlMustLogin = ref(false)
-  const refreshCanSendIdServerCmd = () => {
-    checkCanSendIdServerCmd()
-  }
-  onMounted(refreshCanSendIdServerCmd)
+const canControlMustLogin = ref(false);
+const refreshCanSendIdServerCmd = () => {
+  checkCanSendIdServerCmd();
+};
+onMounted(refreshCanSendIdServerCmd);
 
-  const canSendRelayServerCmd = ref(false)
+const canSendRelayServerCmd = ref(false);
 
-  const checkCanSendRelayServerCmd = async () => {
-    const res = await sendCmd({ cmd: 'h', target: RELAY_TARGET }).catch(_ => false)
-    canSendRelayServerCmd.value = !!res.data
-  }
-  const refreshCanSendRelayServerCmd = () => {
-    checkCanSendRelayServerCmd()
-  }
-  onMounted(refreshCanSendRelayServerCmd)
+const checkCanSendRelayServerCmd = async () => {
+  const res = await sendCmd({ cmd: 'h', target: RELAY_TARGET }).catch((_) => false);
+  canSendRelayServerCmd.value = !!res.data;
+};
+const refreshCanSendRelayServerCmd = () => {
+  checkCanSendRelayServerCmd();
+};
+onMounted(refreshCanSendRelayServerCmd);
 
-  const rs = ref(null)
-  const handleAlwaysUseRelaySuccess = () => {
-    rs.value.save()
-  }
+const rs = ref(null);
+const handleAlwaysUseRelaySuccess = () => {
+  rs.value.save();
+};
 
-  const canSendCmd = (target) => {
-    if (target === ID_TARGET) {
-      return canSendIdServerCmd.value
-    }
-    if (target === RELAY_TARGET) {
-      return canSendRelayServerCmd.value
-    }
-    return false
+const canSendCmd = (target) => {
+  if (target === ID_TARGET) {
+    return canSendIdServerCmd.value;
   }
+  if (target === RELAY_TARGET) {
+    return canSendRelayServerCmd.value;
+  }
+  return false;
+};
 
-  const listRes = reactive({
-    list: [], total: 0, loading: false,
-  })
-  const listQuery = reactive({
-    page: 1,
-    page_size: 10,
-  })
-  const getList = async () => {
-    listRes.loading = true
-    const res = await list(listQuery).catch(_ => false)
-    listRes.loading = false
-    if (res) {
-      listRes.list = res.data.list
-      listRes.total = res.data.total
-    }
+const listRes = reactive({
+  list: [],
+  total: 0,
+  loading: false,
+});
+const listQuery = reactive({
+  page: 1,
+  page_size: 10,
+});
+const getList = async () => {
+  listRes.loading = true;
+  const res = await list(listQuery).catch((_) => false);
+  listRes.loading = false;
+  if (res) {
+    listRes.list = res.data.list;
+    listRes.total = res.data.total;
   }
-  const handlerQuery = () => {
-    if (listQuery.page === 1) {
-      getList()
-    } else {
-      listQuery.page = 1
-    }
+};
+const handlerQuery = () => {
+  if (listQuery.page === 1) {
+    getList();
+  } else {
+    listQuery.page = 1;
   }
-  onMounted(getList)
-  const del = async (row) => {
-    const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('Delete') }), {
-      confirmButtonText: T('Confirm'),
-      cancelButtonText: T('Cancel'),
-      type: 'warning',
-    }).catch(_ => false)
-    if (!cf) {
-      return false
-    }
-
-    const res = await remove({ id: row.id }).catch(_ => false)
-    if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      getList()
-    }
-  }
-  const formData = reactive({
-    cmd: '',
-    alias: '',
-    option: '',
-    target: '',
-    explain: '',
-  })
-  const formVisible = ref(false)
-  const toAdd = () => {
-    formVisible.value = true
-    formData.cmd = ''
-    formData.alias = ''
-    formData.option = ''
-    formData.explain = ''
-  }
-  const toUpdate = (row) => {
-    formVisible.value = true
-    formData.id = row.id
-    formData.cmd = row.cmd
-    formData.alias = row.alias
-    formData.option = row.option
-    formData.target = row.target
-    formData.explain = row.explain
-  }
-  const submit = async () => {
-    if (!formData.cmd) {
-      ElMessage.error(T('ParamRequired', { param: 'cmd' }))
-      return
-    }
-    const api = formData.id ? update : create
-    const res = await api(formData).catch(_ => false)
-    if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      formVisible.value = false
-      getList()
-    }
-  }
-  const cancel = () => {
-    formVisible.value = false
+};
+onMounted(getList);
+const del = async (row) => {
+  const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('Delete') }), {
+    confirmButtonText: T('Confirm'),
+    cancelButtonText: T('Cancel'),
+    type: 'warning',
+  }).catch((_) => false);
+  if (!cf) {
+    return false;
   }
 
-  const showCmdForm = ref(false)
-  const customCmd = reactive({
-    cmd: '',
-    option: '',
-    target: '',
-    res: '',
-    example: '',
-  })
-  const showCmd = (row) => {
-    showCmdForm.value = true
-    customCmd.cmd = row.cmd
-    customCmd.option = ''
-    customCmd.res = ''
-    customCmd.target = row.target
-    customCmd.example = `${row.cmd} ${row.option}`
+  const res = await remove({ id: row.id }).catch((_) => false);
+  if (res) {
+    ElMessage.success(T('OperationSuccess'));
+    getList();
   }
-  const submitCmd = async () => {
-    sendCmd(customCmd).then(res => {
-      console.log(res)
-      customCmd.res = res.data
-      ElMessage.success(T('OperationSuccess'))
-    })
+};
+const formData = reactive({
+  cmd: '',
+  alias: '',
+  option: '',
+  target: '',
+  explain: '',
+});
+const formVisible = ref(false);
+const toAdd = () => {
+  formVisible.value = true;
+  formData.cmd = '';
+  formData.alias = '';
+  formData.option = '';
+  formData.explain = '';
+};
+const toUpdate = (row) => {
+  formVisible.value = true;
+  formData.id = row.id;
+  formData.cmd = row.cmd;
+  formData.alias = row.alias;
+  formData.option = row.option;
+  formData.target = row.target;
+  formData.explain = row.explain;
+};
+const submit = async () => {
+  if (!formData.cmd) {
+    ElMessage.error(T('ParamRequired', { param: 'cmd' }));
+    return;
   }
+  const api = formData.id ? update : create;
+  const res = await api(formData).catch((_) => false);
+  if (res) {
+    ElMessage.success(T('OperationSuccess'));
+    formVisible.value = false;
+    getList();
+  }
+};
+const cancel = () => {
+  formVisible.value = false;
+};
 
+const showCmdForm = ref(false);
+const customCmd = reactive({
+  cmd: '',
+  option: '',
+  target: '',
+  res: '',
+  example: '',
+});
+const showCmd = (row) => {
+  showCmdForm.value = true;
+  customCmd.cmd = row.cmd;
+  customCmd.option = '';
+  customCmd.res = '';
+  customCmd.target = row.target;
+  customCmd.example = `${row.cmd} ${row.option}`;
+};
+const submitCmd = async () => {
+  sendCmd(customCmd).then((res) => {
+    console.log(res);
+    customCmd.res = res.data;
+    ElMessage.success(T('OperationSuccess'));
+  });
+};
 </script>
 
 <style scoped lang="scss">

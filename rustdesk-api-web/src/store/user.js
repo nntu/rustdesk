@@ -1,9 +1,9 @@
-import { defineStore, acceptHMRUpdate } from 'pinia'
-import { current, login } from '@/api/user'
-import { setToken, removeToken, setCode, removeCode } from '@/utils/auth'
-import { useRouteStore } from '@/store/router'
-import { useAppStore } from '@/store/app'
-import { oidcAuth, oidcQuery } from '@/api/login'
+import { oidcAuth, oidcQuery } from '@/api/login';
+import { current, login } from '@/api/user';
+import { useAppStore } from '@/store/app';
+import { useRouteStore } from '@/store/router';
+import { removeCode, removeToken, setCode, setToken } from '@/utils/auth';
+import { acceptHMRUpdate, defineStore } from 'pinia';
 
 export const useUserStore = defineStore({
   id: 'user',
@@ -19,55 +19,57 @@ export const useUserStore = defineStore({
   }),
 
   actions: {
-    logout () {
-      removeToken()
-      removeCode()
+    logout() {
+      removeToken();
+      removeCode();
       this.$patch({
         name: '',
         role: {},
-      })
+      });
     },
 
-    saveUserData (userData) {
+    saveUserData(userData) {
       // useAppStore().getAppConfig()
-      setToken(userData.token)
+      setToken(userData.token);
       //
-      localStorage.setItem('user_info', JSON.stringify({ id: userData.id || 0, name: userData.username }))
+      localStorage.setItem(
+        'user_info',
+        JSON.stringify({ id: userData.id || 0, name: userData.username }),
+      );
       this.$patch({
         ...userData,
-      })
-      if (userData.route_names && userData.route_names.length) {
-        useRouteStore().addRoutes(userData.route_names)
+      });
+      if (userData.route_names?.length) {
+        useRouteStore().addRoutes(userData.route_names);
       }
     },
 
-    async login (form) {
-      const res = await login(form).catch(e => e)
-      console.log('login', res)
+    async login(form) {
+      const res = await login(form).catch((e) => e);
+      console.log('login', res);
       if (!res.code) {
-        useAppStore().loadConfig()
-        const userData = res.data
-        this.saveUserData(userData)
-        return userData
-      } else {
-        return Promise.reject(res)
+        useAppStore().loadConfig();
+        const userData = res.data;
+        this.saveUserData(userData);
+        return userData;
       }
+      return Promise.reject(res);
     },
-    async info () {
-      const res = await current().catch(_ => false)
+    async info() {
+      const res = await current().catch((_) => false);
       if (res) {
-        useAppStore().loadConfig()
-        const userData = res.data
-        setToken(userData.token)
+        useAppStore().loadConfig();
+        const userData = res.data;
+        setToken(userData.token);
         this.$patch({
           ...userData,
-        })
-        useRouteStore().addRoutes(userData.route_names)
-        return userData
+        });
+        useRouteStore().addRoutes(userData.route_names);
+        return userData;
       }
-      return false
+      return false;
     },
-    async oidc (provider, platform, browser) {
+    async oidc(provider, platform, browser) {
       // oidc data need to be implement
       const data = {
         deviceInfo: {
@@ -77,34 +79,34 @@ export const useUserStore = defineStore({
         },
         id: `${platform}-${browser}`,
         op: provider, // Incoming provider
-        uuid: '',//crypto.randomUUID(), // Automatically generate UUID
-      }
-      const res = await oidcAuth(data).catch(_ => false)
+        uuid: '', //crypto.randomUUID(), // Automatically generate UUID
+      };
+      const res = await oidcAuth(data).catch((_) => false);
       if (res) {
-        const { code, url } = res.data
-        setCode(code)
-        if (provider == 'webauth') {
-          window.open(url)
+        const { code, url } = res.data;
+        setCode(code);
+        if (provider === 'webauth') {
+          window.open(url);
         } else {
-          window.location.href = url
+          window.location.href = url;
         }
       }
     },
-    async query (code) {
-      const params = { 'code': code, uuid: '' }
-      const res = await oidcQuery(params).catch(_ => false)
+    async query(code) {
+      const params = { code: code, uuid: '' };
+      const res = await oidcQuery(params).catch((_) => false);
       if (res) {
-        removeCode()
-        useAppStore().loadConfig()
-        const userData = res.data
-        this.saveUserData(userData)
-        return userData
+        removeCode();
+        useAppStore().loadConfig();
+        const userData = res.data;
+        this.saveUserData(userData);
+        return userData;
       }
-      return false
+      return false;
     },
   },
-})
+});
 
 if (import.meta.hot) {
-  import.meta.hot.accept(acceptHMRUpdate(useUserStore, import.meta.hot))
+  import.meta.hot.accept(acceptHMRUpdate(useUserStore, import.meta.hot));
 }

@@ -1,18 +1,18 @@
-const TokenKey = 'access_token'
-const OidcCode = 'oidc_code'
+const TokenKey = 'access_token';
+const OidcCode = 'oidc_code';
 const OidcCodeExpiry = 'oidc_code_expiry';
 
-export function getToken () {
-  return localStorage.getItem(TokenKey)
+export function getToken() {
+  return localStorage.getItem(TokenKey);
 }
 
-export function setToken (token) {
-  localStorage.setItem(`wc-option:local:access_token`, token)
-  return localStorage.setItem(TokenKey, token)
+export function setToken(token) {
+  localStorage.setItem('wc-option:local:access_token', token);
+  return localStorage.setItem(TokenKey, token);
 }
 
-export function removeToken () {
-  return localStorage.removeItem(TokenKey)
+export function removeToken() {
+  return localStorage.removeItem(TokenKey);
 }
 
 // Set code and store the current timestamp (unit: milliseconds)
@@ -29,7 +29,7 @@ export function getCode() {
   const expiry = localStorage.getItem(OidcCodeExpiry); // Get expiration timestamp
   const now = Date.now(); // current timestamp
 
-  if (expiry && now > parseInt(expiry)) {
+  if (expiry && now > Number.parseInt(expiry)) {
     // If it has expired, delete the code and expiration time
     removeCode();
     return null;

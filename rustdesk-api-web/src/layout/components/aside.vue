@@ -4,13 +4,13 @@
   </el-scrollbar>
 </template>
 <script>
-  import Menus from '@/layout/components/menu/index.vue'
-  import { defineComponent, ref, onMounted } from 'vue'
+import Menus from '@/layout/components/menu/index.vue';
+import { defineComponent } from 'vue';
 
-  export default defineComponent({
-    name: 'GAside',
-    components: { Menus },
-  })
+export default defineComponent({
+  name: 'GAside',
+  components: { Menus },
+});
 </script>
 
 <style scoped lang="scss">

@@ -1,4 +1,4 @@
-import { createRouter, createWebHashHistory, RouterView } from 'vue-router'
+import { RouterView, createRouter, createWebHashHistory } from 'vue-router';
 
 const constantRoutes = [
   {
@@ -30,7 +30,7 @@ const constantRoutes = [
     component: () => import('@/views/oauth/bind.vue'),
     hidden: true,
   },
-]
+];
 export const asyncRoutes = [
   {
     path: '/my',
@@ -81,7 +81,7 @@ export const asyncRoutes = [
             meta: { title: 'Tags', icon: 'CollectionTag' },
             component: () => import('@/views/my/tag/index.vue'),
           },
-        ]
+        ],
       },
       {
         path: '/my/logs',
@@ -101,8 +101,8 @@ export const asyncRoutes = [
             meta: { title: 'LoginLog', icon: 'List' },
             component: () => import('@/views/my/login_log/index.vue'),
           },
-        ]
-      }
+        ],
+      },
     ],
   },
   {
@@ -148,7 +148,7 @@ export const asyncRoutes = [
             meta: { title: 'ServerCmd', icon: 'Tools' },
             component: () => import('@/views/rustdesk/control.vue'),
           },
-        ]
+        ],
       },
       {
         path: '/user/address_books',
@@ -180,7 +180,7 @@ export const asyncRoutes = [
             meta: { title: 'ShareRecord', icon: 'Share' },
             component: () => import('@/views/share_record/index.vue'),
           },
-        ]
+        ],
       },
       {
         path: '/user/users_security',
@@ -230,18 +230,14 @@ export const asyncRoutes = [
             meta: { title: 'OauthManage', icon: 'Link' },
             component: () => import('@/views/oauth/index.vue'),
           },
-        ]
+        ],
       },
     ],
   },
-]
-export const lastRoutes = [
-  { path: '/:catchAll(.*)', redirect: '/404', meta: { hide: true } },
-]
+];
+export const lastRoutes = [{ path: '/:catchAll(.*)', redirect: '/404', meta: { hide: true } }];
 
 export const router = createRouter({
   history: createWebHashHistory(),
   routes: constantRoutes,
-})
-
-
+});

@@ -1,4 +1,4 @@
-import { defineStore, acceptHMRUpdate } from 'pinia'
+import { acceptHMRUpdate, defineStore } from 'pinia';
 
 export const useTagsStore = defineStore({
   id: 'tags',
@@ -7,7 +7,7 @@ export const useTagsStore = defineStore({
     cached: [],
   }),
   actions: {
-    initTags () {
+    initTags() {
       // this.tags.push(
       //   {
       //     name: 'Home',
@@ -18,15 +18,15 @@ export const useTagsStore = defineStore({
       //     keepAlive: false,
       //   })
     },
-    addTag (route) {
-      const tags = this.tags
-      if (tags.find(t => t.name === route.name)) {
-        tags.forEach(t => t.active = false)
-        tags.find(t => t.name === route.name).active = true
+    addTag(route) {
+      const tags = this.tags;
+      if (tags.find((t) => t.name === route.name)) {
+        tags.forEach((t) => (t.active = false));
+        tags.find((t) => t.name === route.name).active = true;
       } else {
-        tags.forEach(t => t.active = false)
+        tags.forEach((t) => (t.active = false));
         if (route.meta?.keepAlive) {
-          this.addCachedTag(route.name)
+          this.addCachedTag(route.name);
         }
         tags.push({
           name: route.name,
@@ -35,39 +35,36 @@ export const useTagsStore = defineStore({
           active: true,
           closeable: true,
           keepAlive: route.meta?.keepAlive,
-        })
-
+        });
       }
-      this.$patch({ tags })
+      this.$patch({ tags });
     },
-    removeTag (tag) {
-      let tags = this.tags
-      if (tags.find(t => t.name === tag.name)) {
-        const index = tags.findIndex(t => t.name === tag.name)
+    removeTag(tag) {
+      const tags = this.tags;
+      if (tags.find((t) => t.name === tag.name)) {
+        const index = tags.findIndex((t) => t.name === tag.name);
         if (index > -1) {
           if (tags[index].keepAlive) {
-            this.removeCachedTag(tags[index].name)
+            this.removeCachedTag(tags[index].name);
           }
-          tags.splice(index, 1)
+          tags.splice(index, 1);
         }
       }
-      this.$patch({ tags })
+      this.$patch({ tags });
     },
-    addCachedTag (name) {
+    addCachedTag(name) {
       if (!this.cached.includes(name)) {
-        this.cached.push(name)
+        this.cached.push(name);
       }
     },
-    removeCachedTag (name) {
+    removeCachedTag(name) {
       if (this.cached.includes(name)) {
-        this.cached.splice(this.cached.indexOf(name), 1)
+        this.cached.splice(this.cached.indexOf(name), 1);
       }
-
     },
-
   },
-})
+});
 
 if (import.meta.hot) {
-  import.meta.hot.accept(acceptHMRUpdate(useTagsStore, import.meta.hot))
+  import.meta.hot.accept(acceptHMRUpdate(useTagsStore, import.meta.hot));
 }

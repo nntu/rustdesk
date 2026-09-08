@@ -57,71 +57,69 @@
   </el-form>
 </template>
 <script setup>
+import { batchCreate } from '@/api/address_book';
+import { loadAllUsers } from '@/global';
+import { T } from '@/utils/i18n';
+import { useRepositories as useABRepositories } from '@/views/address_book';
+import { ElMessage } from 'element-plus';
+import { defineEmits, defineProps, onMounted } from 'vue';
 
-  import { T } from '@/utils/i18n'
-  import { loadAllUsers } from '@/global'
-  import { onMounted, defineProps, defineEmits, onActivated } from 'vue'
-  import { useRepositories as useABRepositories } from '@/views/address_book'
-  import { batchCreate } from '@/api/address_book'
-  import { ElMessage } from 'element-plus'
+const emits = defineEmits(['cancel', 'success']);
+const props = defineProps({
+  peer: {
+    type: Object,
+    required: true,
+  },
+});
+const { allUsers, getAllUsers } = loadAllUsers();
+onMounted(getAllUsers);
+const {
+  platformList: ABPlatformList,
+  formData: ABFormData,
+  changeUserForUpdate,
+  changeCollectionForUpdate,
+  collectionListResForUpdate,
+  tagListRes,
+  fromPeer,
+} = useABRepositories('admin');
+onMounted(() => {
+  fromPeer(props.peer);
+  console.log(collectionListResForUpdate);
+});
 
-  const emits = defineEmits(['cancel', 'success'])
-  const props = defineProps({
-    peer: {
-      type: Object,
-      required: true,
-    },
-  })
-  const { allUsers, getAllUsers } = loadAllUsers()
-  onMounted(getAllUsers)
-  const {
-    platformList: ABPlatformList,
-    formData: ABFormData,
-    changeUserForUpdate,
-    changeCollectionForUpdate,
-    collectionListResForUpdate,
-    tagListRes,
-    fromPeer,
-  } = useABRepositories('admin')
-  onMounted(() => {
-    fromPeer(props.peer)
-    console.log(collectionListResForUpdate)
-  })
-
-  const changeUser = async (val) => {
-    ABFormData.collection_id = 0
-    ABFormData.tags = []
-    if (val.length === 1) {
-      changeUserForUpdate(val[0])
-    }
-    if (val.length === 0) {
-      collectionListResForUpdate.list = []
-    }
+const changeUser = async (val) => {
+  ABFormData.collection_id = 0;
+  ABFormData.tags = [];
+  if (val.length === 1) {
+    changeUserForUpdate(val[0]);
   }
-
-  const ABSubmit = async () => {
-    if (ABFormData.user_ids.length === 0) {
-      ElMessage.error(T('ParamRequired', { param: T('Owner') }))
-      return
-    }
-    if (!ABFormData.id) {
-      ElMessage.error(T('ParamRequired', { param: 'ID' }))
-      return
-    }
-    if (ABFormData.user_ids.length > 1) {
-      ABFormData.collection_id = 0
-      ABFormData.tags = []
-    }
-    const res = await batchCreate(ABFormData).catch(_ => false)
-    if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      emits('success')
-    }
+  if (val.length === 0) {
+    collectionListResForUpdate.list = [];
   }
-  const cancel = () => {
-    emits('cancel')
-  }
+};
 
+const ABSubmit = async () => {
+  if (ABFormData.user_ids.length === 0) {
+    ElMessage.error(T('ParamRequired', { param: T('Owner') }));
+    return;
+  }
+  if (!ABFormData.id) {
+    ElMessage.error(T('ParamRequired', { param: 'ID' }));
+    return;
+  }
+  if (ABFormData.user_ids.length > 1) {
+    ABFormData.collection_id = 0;
+    ABFormData.tags = [];
+  }
+  const res = await batchCreate(ABFormData).catch((_) => false);
+  if (res) {
+    ElMessage.success(T('OperationSuccess'));
+    emits('success');
+  }
+};
+const cancel = () => {
+  emits('cancel');
+};
 </script>
 
 <style scoped lang="scss">

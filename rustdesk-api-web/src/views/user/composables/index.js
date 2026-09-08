@@ -1,59 +1,60 @@
-import { reactive } from 'vue'
-import { list, remove, changePwd } from '@/api/user'
-import { list as groups } from '@/api/group'
-import { useRouter } from 'vue-router'
-import { ElMessageBox, ElMessage } from 'element-plus'
-import { T } from '@/utils/i18n'
-import { downBlob, jsonToCsv } from '@/utils/file'
+import { list as groups } from '@/api/group';
+import { changePwd, list, remove } from '@/api/user';
+import { downBlob, jsonToCsv } from '@/utils/file';
+import { T } from '@/utils/i18n';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { reactive } from 'vue';
+import { useRouter } from 'vue-router';
 
-export function useRepositories () {
-
+export function useRepositories() {
   const listRes = reactive({
-    list: [], total: 0, loading: false,
+    list: [],
+    total: 0,
+    loading: false,
     groups: [],
-  })
+  });
   const listQuery = reactive({
     page: 1,
     page_size: 10,
     username: '',
-  })
+  });
 
   const getList = async () => {
-    listRes.loading = true
-    const res = await list(listQuery).catch(_ => false)
-    listRes.loading = false
+    listRes.loading = true;
+    const res = await list(listQuery).catch((_) => false);
+    listRes.loading = false;
     if (res) {
-      listRes.list = res.data.list
-      listRes.total = res.data.total
+      listRes.list = res.data.list;
+      listRes.total = res.data.total;
     }
-  }
+  };
 
   const handlerQuery = () => {
     if (listQuery.page === 1) {
-      getList()
+      getList();
     } else {
-      listQuery.page = 1
+      listQuery.page = 1;
       //Triggered by watch
     }
-  }
+  };
 
   const getGroups = async () => {
-    const res = await groups({ page_size: 9999 }).catch(_ => false)
+    const res = await groups({ page_size: 9999 }).catch((_) => false);
     if (res) {
-      listRes.groups = res.data.list
+      listRes.groups = res.data.list;
     }
-  }
+  };
 
   const toExport = async () => {
-    const q = { ...listQuery }
-    q.page_size = 1000000
-    q.page = 1
-    const res = await list(q).catch(_ => false)
+    const q = { ...listQuery };
+    q.page_size = 1000000;
+    q.page = 1;
+    const res = await list(q).catch((_) => false);
     if (res) {
-      const csv = jsonToCsv(res.data.list)
-      downBlob(csv, 'users.csv')
+      const csv = jsonToCsv(res.data.list);
+      downBlob(csv, 'users.csv');
     }
-  }
+  };
   return {
     listRes,
     listQuery,
@@ -61,75 +62,75 @@ export function useRepositories () {
     getList,
     getGroups,
     toExport,
-  }
+  };
 }
 
-export function useToEditOrAdd () {
-  const router = useRouter()
+export function useToEditOrAdd() {
+  const router = useRouter();
   const toEdit = (row) => {
-    router.push('/user/edit/' + row.id)
-  }
+    router.push('/user/edit/' + row.id);
+  };
   const toAdd = () => {
-    router.push('/user/add')
-  }
+    router.push('/user/add');
+  };
   const toTag = (row) => {
-    router.push('/user/tag/?user_id=' + row.id)
-  }
+    router.push('/user/tag/?user_id=' + row.id);
+  };
   const toAddressBook = (row) => {
-    router.push('/user/addressBook/?user_id=' + row.id)
-  }
+    router.push('/user/addressBook/?user_id=' + row.id);
+  };
   return {
     toAdd,
     toEdit,
     toTag,
     toAddressBook,
-  }
+  };
 }
 
-export function useDel () {
+export function useDel() {
   const del = async (id) => {
     const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('Delete') }), {
       confirmButtonText: T('Confirm'),
       cancelButtonText: T('Cancel'),
       type: 'warning',
-    }).catch(_ => false)
+    }).catch((_) => false);
     if (!cf) {
-      return false
+      return false;
     }
 
-    const res = remove({ id }).catch(_ => false)
+    const res = remove({ id }).catch((_) => false);
     if (res) {
-      ElMessage.success(T('OperationSuccess'))
+      ElMessage.success(T('OperationSuccess'));
     }
-    return res
-  }
+    return res;
+  };
   return {
     del,
-  }
+  };
 }
 
-export function useChangePwd () {
+export function useChangePwd() {
   const changePass = async (admin) => {
     const input = await ElMessageBox.prompt(T('PleaseInputNewPassword'), T('ResetPassword'), {
       confirmButtonText: T('Confirm'),
       cancelButtonText: T('Cancel'),
-    }).catch(_ => false)
+    }).catch((_) => false);
     if (!input) {
-      return
+      return;
     }
     const confirm = await ElMessageBox.confirm(T('Confirm?', { param: T('ResetPassword') }), {
       confirmButtonText: T('Confirm'),
       cancelButtonText: T('Cancel'),
-    }).catch(_ => false)
+    }).catch((_) => false);
     if (!confirm) {
-      return
+      return;
     }
-    const res = await changePwd({ id: admin.id, password: input.value }).catch(_ => false)
+    const res = await changePwd({ id: admin.id, password: input.value }).catch((_) => false);
     if (!res) {
-      return
+      return;
     }
-    ElMessage.success(T('OperationSuccess'))
-  }
+    ElMessage.success(T('OperationSuccess'));
+  };
 
-  return { changePass }
+  return { changePass };
 }

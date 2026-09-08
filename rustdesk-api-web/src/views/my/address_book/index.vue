@@ -181,110 +181,101 @@
 </template>
 
 <script setup>
-  import { onActivated, onMounted, reactive, ref, watch, computed } from 'vue'
-  import { useBatchUpdateTagsRepositories, useRepositories } from '@/views/address_book'
-  import { toWebClientLink } from '@/utils/webclient'
-  import { T } from '@/utils/i18n'
-  import { ElMessage } from 'element-plus'
-  import shareByWebClient from '@/views/address_book/components/shareByWebClient.vue'
-  import { useAppStore } from '@/store/app'
-  import { connectByClient } from '@/utils/peer'
-  import { handleClipboard } from '@/utils/clipboard'
-  import { CopyDocument } from '@element-plus/icons-vue'
-  import PlatformIcons from '@/components/icons/platform.vue'
-  import { showRemotePasswordDialog, decodeRemotePassword } from '@/utils/remotePassword'
+import { useAppStore } from '@/store/app';
+import { T } from '@/utils/i18n';
+import { decodeRemotePassword, showRemotePasswordDialog } from '@/utils/remotePassword';
+import { useBatchUpdateTagsRepositories, useRepositories } from '@/views/address_book';
+import { ElMessage } from 'element-plus';
+import { computed, onActivated, onMounted, reactive, ref, watch } from 'vue';
 
-  const appStore = useAppStore()
-  const {
-    listRes,
-    listQuery,
-    getList,
-    handlerQuery,
-    collectionListRes,
-    getCollectionList,
+const appStore = useAppStore();
+const {
+  listRes,
+  listQuery,
+  getList,
+  handlerQuery,
+  collectionListRes,
+  getCollectionList,
 
-    del,
+  del,
 
-    formVisible,
-    platformList,
-    formData,
-    toEdit,
-    toAdd,
-    submit,
-    tagListRes,
-    changeCollectionForUpdate,
-    getCollectionListForUpdate,
-    collectionListResForUpdate,
-    // collectionListQuery,
+  formVisible,
+  platformList,
+  formData,
+  toEdit,
+  toAdd,
+  submit,
+  tagListRes,
+  changeCollectionForUpdate,
+  getCollectionListForUpdate,
+  collectionListResForUpdate,
+  // collectionListQuery,
+} = useRepositories('my');
 
-  } = useRepositories('my')
+const decodedRemotePassword = computed(() => {
+  return decodeRemotePassword(formData.hash || formData.password, formData.id);
+});
 
-  const decodedRemotePassword = computed(() => {
-    return decodeRemotePassword(formData.hash || formData.password, formData.id)
-  })
-
-  const copyDecodedPassword = async () => {
-    const text = decodedRemotePassword.value
-    if (!text) return
-    try {
-      await navigator.clipboard.writeText(text)
-      ElMessage.success(T('CopySuccess') || 'Sao chep thanh cong')
-    } catch (_) {
-      ElMessage.error(T('CopyFailed') || 'Sao chep that bai')
-    }
+const copyDecodedPassword = async () => {
+  const text = decodedRemotePassword.value;
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    ElMessage.success(T('CopySuccess') || 'Sao chep thanh cong');
+  } catch (_) {
+    ElMessage.error(T('CopyFailed') || 'Sao chep that bai');
   }
+};
 
-  const viewRemotePassword = (row) => {
-    showRemotePasswordDialog(row.hash || row.password, {
-      id: row.id,
-      hostname: row.hostname,
-      alias: row.alias,
-    })
+const viewRemotePassword = (row) => {
+  showRemotePasswordDialog(row.hash || row.password, {
+    id: row.id,
+    hostname: row.hostname,
+    alias: row.alias,
+  });
+};
+
+onMounted(getCollectionList);
+onMounted(getCollectionListForUpdate);
+onMounted(getList);
+onActivated(getList);
+
+watch(() => listQuery.page, getList);
+
+watch(() => listQuery.page_size, handlerQuery);
+
+const shareToWebClientVisible = ref(false);
+const shareToWebClientForm = reactive({
+  id: '',
+  hash: '',
+});
+const toShowShare = (row) => {
+  shareToWebClientForm.id = row.id;
+  shareToWebClientForm.hash = row.hash;
+  shareToWebClientVisible.value = true;
+};
+const {
+  tagListRes: tagListResForBatchEdit,
+  getTagList: getTagListForBatchEdit,
+  visible: batchEditTagVisible,
+  show: showBatchEditTags,
+  formData: batchEditTagsFormData,
+  submit: _submitBatchEditTags,
+} = useBatchUpdateTagsRepositories();
+onMounted(getTagListForBatchEdit);
+const submitBatchEditTags = async () => {
+  const res = await _submitBatchEditTags().catch((_) => false);
+  if (res) {
+    getList();
   }
+};
 
-  onMounted(getCollectionList)
-  onMounted(getCollectionListForUpdate)
-  onMounted(getList)
-  onActivated(getList)
+const multipleSelection = ref([]);
+const handleSelectionChange = (val) => {
+  multipleSelection.value = val;
 
-  watch(() => listQuery.page, getList)
-
-  watch(() => listQuery.page_size, handlerQuery)
-
-  const shareToWebClientVisible = ref(false)
-  const shareToWebClientForm = reactive({
-    id: '',
-    hash: '',
-  })
-  const toShowShare = (row) => {
-    shareToWebClientForm.id = row.id
-    shareToWebClientForm.hash = row.hash
-    shareToWebClientVisible.value = true
-  }
-  const {
-    tagListRes: tagListResForBatchEdit,
-    getTagList: getTagListForBatchEdit,
-    visible: batchEditTagVisible,
-    show: showBatchEditTags,
-    formData: batchEditTagsFormData,
-    submit: _submitBatchEditTags,
-  } = useBatchUpdateTagsRepositories()
-  onMounted(getTagListForBatchEdit)
-  const submitBatchEditTags = async () => {
-    const res = await _submitBatchEditTags().catch(_ => false)
-    if (res) {
-      getList()
-    }
-  }
-
-  const multipleSelection = ref([])
-  const handleSelectionChange = (val) => {
-    multipleSelection.value = val
-
-    batchEditTagsFormData.value.row_ids = val.map(v => v.row_id)
-  }
-
-
+  batchEditTagsFormData.value.row_ids = val.map((v) => v.row_id);
+};
 </script>
 
 <style scoped lang="scss">

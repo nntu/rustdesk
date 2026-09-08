@@ -4,22 +4,22 @@
 </template>
 
 <script>
-  import { defineComponent, ref, onMounted } from 'vue'
+import { defineComponent, ref } from 'vue';
 
-  export default defineComponent({
-    name: 'Home',
-    setup () {
-      const todoList = ref([
-        {title:'fix bug'},
-        {title:'fix bug'},
-        {title:'fix bug'},
-        {title:'Add new features'},
-      ])
-      return {
-        todoList
-      }
-    },
-  })
+export default defineComponent({
+  name: 'Home',
+  setup() {
+    const todoList = ref([
+      { title: 'fix bug' },
+      { title: 'fix bug' },
+      { title: 'fix bug' },
+      { title: 'Add new features' },
+    ]);
+    return {
+      todoList,
+    };
+  },
+});
 </script>
 
 <style scoped lang="scss">

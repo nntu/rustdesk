@@ -29,64 +29,68 @@
 </template>
 
 <script setup>
-  import { reactive, ref } from 'vue'
-  import { ElMessage } from 'element-plus'
-  import { T } from '@/utils/i18n'
-  import { useRoute, useRouter } from 'vue-router'
-  import { register } from '@/api/user'
-  import { useUserStore } from '@/store/user'
-  import { useAppStore } from '@/store/app'
+import { register } from '@/api/user';
+import { useAppStore } from '@/store/app';
+import { useUserStore } from '@/store/user';
+import { T } from '@/utils/i18n';
+import { ElMessage } from 'element-plus';
+import { reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
-  const router = useRouter()
-  const userStore = useUserStore()
-  const form = reactive({
-    username: '',
-    email: '',
-    password: '',
-    confirm_password: '',
-  })
-  const rules = {
-    username: [
-      { required: true, message: T('ParamRequired', { param: T('Username') }), trigger: 'blur' },
-    ],
-    // email: [
-    //   { required: true, message: T('ParamRequired', { param: T('Email') }), trigger: 'blur' },
-    // ],
-    password: [
-      { required: true, message: T('ParamRequired', { param: T('Password') }), trigger: 'blur' },
-    ],
-    confirm_password: [
-      { required: true, message: T('ParamRequired', { param: T('ConfirmPassword') }), trigger: 'blur' },
-      {
-        validator: (rule, value, callback) => {
-          if (value !== form.password) {
-            callback(new Error(T('PasswordNotMatchConfirmPassword')))
-          } else {
-            callback()
-          }
-        }, trigger: 'blur',
+const router = useRouter();
+const userStore = useUserStore();
+const form = reactive({
+  username: '',
+  email: '',
+  password: '',
+  confirm_password: '',
+});
+const rules = {
+  username: [
+    { required: true, message: T('ParamRequired', { param: T('Username') }), trigger: 'blur' },
+  ],
+  // email: [
+  //   { required: true, message: T('ParamRequired', { param: T('Email') }), trigger: 'blur' },
+  // ],
+  password: [
+    { required: true, message: T('ParamRequired', { param: T('Password') }), trigger: 'blur' },
+  ],
+  confirm_password: [
+    {
+      required: true,
+      message: T('ParamRequired', { param: T('ConfirmPassword') }),
+      trigger: 'blur',
+    },
+    {
+      validator: (rule, value, callback) => {
+        if (value !== form.password) {
+          callback(new Error(T('PasswordNotMatchConfirmPassword')));
+        } else {
+          callback();
+        }
       },
-    ],
+      trigger: 'blur',
+    },
+  ],
+};
+const f = ref(null);
+const submit = async () => {
+  const v = await f.value.validate().catch((_) => false);
+  if (!v) {
+    return;
   }
-  const f = ref(null)
-  const submit = async () => {
-    const v = await f.value.validate().catch(_ => false)
-    if (!v) {
-      return
-    }
-    const res = await register(form).catch(_ => false)
-    if (!res) {
-      return
-    }
-    userStore.saveUserData(res.data)
-    useAppStore().loadConfig()
-    ElMessage.success('Submit')
-    router.push('/')
+  const res = await register(form).catch((_) => false);
+  if (!res) {
+    return;
   }
-  const toLogin = () => {
-    router.push('/login')
-
-  }
+  userStore.saveUserData(res.data);
+  useAppStore().loadConfig();
+  ElMessage.success('Submit');
+  router.push('/');
+};
+const toLogin = () => {
+  router.push('/login');
+};
 </script>
 
 <style scoped lang="scss">

@@ -31,62 +31,70 @@
   </el-card>
 </template>
 <script setup>
+import { sendCmd } from '@/api/rustdesk';
+import { T } from '@/utils/i18n';
+import { RELAY_TARGET } from '@/views/rustdesk/options';
+import { ElMessage } from 'element-plus';
+import { reactive, watch } from 'vue';
 
-  import { T } from '@/utils/i18n'
-  import { reactive, watch } from 'vue'
-  import { sendCmd } from '@/api/rustdesk'
-  import { ElMessage } from 'element-plus'
-  import { RELAY_TARGET } from '@/views/rustdesk/options'
+const props = defineProps({
+  canSend: Boolean,
+});
 
-  const props = defineProps({
-    canSend: Boolean,
-  })
-
-  const form = reactive({
-    get_cmd: 'blacklist',
-    add_cmd: 'blacklist-add',
-    remove_cmd: 'blacklist-remove',
-    list: [],
+const form = reactive({
+  get_cmd: 'blacklist',
+  add_cmd: 'blacklist-add',
+  remove_cmd: 'blacklist-remove',
+  list: [],
+  target: RELAY_TARGET,
+  loading: false,
+  form_visible: false,
+  form_input: '',
+  form_type: '',
+});
+const getList = async () => {
+  form.loading = true;
+  const res = await sendCmd({ cmd: form.get_cmd, target: RELAY_TARGET }).catch((_) => false);
+  form.loading = false;
+  if (res) {
+    form.list = res.data.split('\n').filter((i) => i);
+  }
+};
+const showForm = (type) => {
+  form.form_visible = true;
+  form.form_input = '';
+  form.form_type = type;
+};
+const add = async () => {
+  const res = await sendCmd({
+    cmd: form.add_cmd,
+    option: form.form_input,
     target: RELAY_TARGET,
-    loading: false,
-    form_visible: false,
-    form_input: '',
-    form_type: '',
-  })
-  const getList = async () => {
-    form.loading = true
-    const res = await sendCmd({ cmd: form.get_cmd, target: RELAY_TARGET }).catch(_ => false)
-    form.loading = false
-    if (res) {
-      form.list = res.data.split('\n').filter(i => i)
-    }
+  }).catch((_) => false);
+  if (res) {
+    ElMessage.success(T('OperationSuccess'));
+    getList();
   }
-  const showForm = (type) => {
-    form.form_visible = true
-    form.form_input = ''
-    form.form_type = type
+};
+const remove = async () => {
+  const res = await sendCmd({
+    cmd: form.remove_cmd,
+    option: form.form_input,
+    target: RELAY_TARGET,
+  }).catch((_) => false);
+  if (res) {
+    ElMessage.success(T('OperationSuccess'));
+    getList();
   }
-  const add = async () => {
-    const res = await sendCmd({ cmd: form.add_cmd, option: form.form_input, target: RELAY_TARGET }).catch(_ => false)
-    if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      getList()
-    }
-  }
-  const remove = async () => {
-    const res = await sendCmd({ cmd: form.remove_cmd, option: form.form_input, target: RELAY_TARGET }).catch(_ => false)
-    if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      getList()
-    }
-  }
-  watch(() => props.canSend, (v) => {
+};
+watch(
+  () => props.canSend,
+  (v) => {
     if (v) {
-      getList()
+      getList();
     }
-  })
-
-
+  },
+);
 </script>
 <style scoped lang="scss">
 

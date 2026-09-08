@@ -19,101 +19,107 @@
 </template>
 
 <script setup>
+import { changeCurPwd } from '@/api/user';
+import { useUserStore } from '@/store/user';
+import { T } from '@/utils/i18n';
+import { ElMessageBox } from 'element-plus';
+import { computed, reactive, ref } from 'vue';
 
-  import { computed, reactive, ref } from 'vue'
-  import { ElMessageBox } from 'element-plus'
-  import { changeCurPwd } from '@/api/user'
-  import { useUserStore } from '@/store/user'
-  import { T } from '@/utils/i18n'
+const props = defineProps({
+  visible: Boolean,
+});
+const v = computed({
+  get: () => props.visible,
+  set: (val) => {
+    emit('update:visible', val);
+  },
+});
+const emit = defineEmits(['update:visible']);
 
-  const props = defineProps({
-    visible: Boolean,
-  })
-  const v = computed({
-    get: () => props.visible,
-    set: (val) => {
-      emit('update:visible', val)
+// Watch for changes to the prop and emit an event if necessary
+// watch(() => props.visible, (newVal) => {
+//   emit('update:visible', newVal);
+// });
+const showChangePwd = () => {
+  emit('update:visible', true);
+  changePwdForm.old_password = '';
+  changePwdForm.new_password = '';
+  changePwdForm.confirmPwd = '';
+};
+const changePwdForm = reactive({
+  old_password: '',
+  new_password: '',
+  confirmPwd: '',
+});
+const chagePwdRules = computed((_) => ({
+  old_password: [
+    { required: true, message: T('ParamRequired', { param: T('OldPassword') }), trigger: 'blur' },
+  ],
+  new_password: [
+    { required: true, message: T('ParamRequired', { param: T('NewPassword') }), trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (value === changePwdForm.old_password) {
+          callback(new Error(T('NewPasswordEqualOldPassword'))); //'The new password cannot be the same as the old password'
+        } else {
+          callback();
+        }
+      },
+      trigger: 'blur',
     },
-  })
-  const emit = defineEmits(['update:visible'])
-
-  // Watch for changes to the prop and emit an event if necessary
-  // watch(() => props.visible, (newVal) => {
-  //   emit('update:visible', newVal);
-  // });
-  const showChangePwd = () => {
-    emit('update:visible', true)
-    changePwdForm.old_password = ''
-    changePwdForm.new_password = ''
-    changePwdForm.confirmPwd = ''
-  }
-  const changePwdForm = reactive({
-    old_password: '',
-    new_password: '',
-    confirmPwd: '',
-  })
-  const chagePwdRules = computed(_ => ({
-    old_password: [{ required: true, message: T('ParamRequired', { param: T('OldPassword') }), trigger: 'blur' }],
-    new_password: [
-      { required: true, message: T('ParamRequired', { param: T('NewPassword') }), trigger: 'blur' },
-      {
-        validator: (rule, value, callback) => {
-          if (value === changePwdForm.old_password) {
-            callback(new Error(T('NewPasswordEqualOldPassword'))) //'The new password cannot be the same as the old password'
-          } else {
-            callback()
-          }
-        },
-        trigger: 'blur',
-      }],
-    confirmPwd: [
-      { required: true, message: T('ParamRequired', { param: T('ConfirmPassword') }), trigger: 'blur' },
-      {
-        validator: (rule, value, callback) => {
-          if (value !== changePwdForm.new_password) {
-            callback(new Error(T('PasswordNotMatchConfirmPassword')))
-          } else {
-            callback()
-          }
-        },
-        trigger: 'blur',
+  ],
+  confirmPwd: [
+    {
+      required: true,
+      message: T('ParamRequired', { param: T('ConfirmPassword') }),
+      trigger: 'blur',
+    },
+    {
+      validator: (rule, value, callback) => {
+        if (value !== changePwdForm.new_password) {
+          callback(new Error(T('PasswordNotMatchConfirmPassword')));
+        } else {
+          callback();
+        }
       },
-    ],
-  }))
-  const cpwd = ref(null)
-  const cancelChangePwd = () => {
-    emit('update:visible', false)
-  }
+      trigger: 'blur',
+    },
+  ],
+}));
+const cpwd = ref(null);
+const cancelChangePwd = () => {
+  emit('update:visible', false);
+};
 
-  const userStore = useUserStore()
+const userStore = useUserStore();
 
-  const changePassword = async () => {
-    //verify
-    const valid = await cpwd.value.validate().catch(_ => false)
-    if (!valid) {
-      return
-    }
-    console.log('changePassword')
-    const confirm = await ElMessageBox.confirm(T('Confirm?', { param: T('ChangePassword') }), {
-      confirmButtonText: T('Confirm'),
-      cancelButtonText: T('Cancel'),
-    }).catch(_ => false)
-    if (!confirm) {
-      return
-    }
-    const res = await changeCurPwd(changePwdForm).catch(_ => false)
-    if (!res) {
-      return
-    }
-    ElMessageBox.alert(T('OperationSuccess'), T('ChangePassword'), {
-      autofocus: true,
-      confirmButtonText: 'OK',
-      callback: (action) => {
-        userStore.logout()
-        window.location.reload()
-      },
-    })
+const changePassword = async () => {
+  //verify
+  const valid = await cpwd.value.validate().catch((_) => false);
+  if (!valid) {
+    return;
   }
+  console.log('changePassword');
+  const confirm = await ElMessageBox.confirm(T('Confirm?', { param: T('ChangePassword') }), {
+    confirmButtonText: T('Confirm'),
+    cancelButtonText: T('Cancel'),
+  }).catch((_) => false);
+  if (!confirm) {
+    return;
+  }
+  const res = await changeCurPwd(changePwdForm).catch((_) => false);
+  if (!res) {
+    return;
+  }
+  ElMessageBox.alert(T('OperationSuccess'), T('ChangePassword'), {
+    autofocus: true,
+    confirmButtonText: 'OK',
+    callback: (action) => {
+      userStore.logout();
+      window.location.reload();
+    },
+  });
+};
 </script>
 
 <style scoped lang="scss">

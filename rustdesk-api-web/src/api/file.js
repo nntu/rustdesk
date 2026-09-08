@@ -1,2 +1,2 @@
 // Unused file upload API wrapper
-export {}
+export {};

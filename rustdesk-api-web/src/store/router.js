@@ -1,23 +1,26 @@
-import { defineStore, acceptHMRUpdate } from 'pinia'
-import { lastRoutes, asyncRoutes, router } from '@/router'
+import { asyncRoutes, lastRoutes, router } from '@/router';
+import { acceptHMRUpdate, defineStore } from 'pinia';
 
-function filterRoute (routes, enableNames) {
-  return routes.filter(route => {
-    if (route.children && route.children.length) {
-      return enableNames.includes(route.name) || route.children.some(r => enableNames.includes(r.name))
-    } else {
-      return enableNames.includes(route.name)
-    }
-  }).map(route => {
-    if (route.children && route.children.length) {
-      return {
-        ...route,
-        children: filterRoute(route.children, enableNames),
+function filterRoute(routes, enableNames) {
+  return routes
+    .filter((route) => {
+      if (route.children?.length) {
+        return (
+          enableNames.includes(route.name) ||
+          route.children.some((r) => enableNames.includes(r.name))
+        );
       }
-    } else {
-      return { ...route }
-    }
-  })
+      return enableNames.includes(route.name);
+    })
+    .map((route) => {
+      if (route.children?.length) {
+        return {
+          ...route,
+          children: filterRoute(route.children, enableNames),
+        };
+      }
+      return { ...route };
+    });
 }
 
 export const useRouteStore = defineStore({
@@ -29,36 +32,35 @@ export const useRouteStore = defineStore({
     keepAlive: [],
   }),
   actions: {
-    addRoutes (accessRouteNames) {
+    addRoutes(accessRouteNames) {
       if (accessRouteNames.includes('*')) {
-        this.routes = asyncRoutes
+        this.routes = asyncRoutes;
       } else {
-        this.routes = filterRoute(asyncRoutes, accessRouteNames)
+        this.routes = filterRoute(asyncRoutes, accessRouteNames);
       }
 
-      this.routes.forEach(route => {
-        router.addRoute(route)
-      })
-      lastRoutes.forEach(route => {
-        router.addRoute(route)
-      })
-      this.addKeepAlive(this.routes)
+      this.routes.forEach((route) => {
+        router.addRoute(route);
+      });
+      lastRoutes.forEach((route) => {
+        router.addRoute(route);
+      });
+      this.addKeepAlive(this.routes);
     },
-    addKeepAlive (route) {
-      if (route instanceof Array) {
-        route.forEach(r => {
-          this.addKeepAlive(r)
-        })
-      } else if (route.children && route.children.length) {
-        this.addKeepAlive(route.children)
+    addKeepAlive(route) {
+      if (Array.isArray(route)) {
+        route.forEach((r) => {
+          this.addKeepAlive(r);
+        });
+      } else if (route.children?.length) {
+        this.addKeepAlive(route.children);
       } else if (route.meta?.keepAlive && !this.keepAlive.includes(route.name)) {
-        this.keepAlive.push(route.name)
+        this.keepAlive.push(route.name);
       }
     },
-
   },
-})
+});
 
 if (import.meta.hot) {
-  import.meta.hot.accept(acceptHMRUpdate(useRouteStore, import.meta.hot))
+  import.meta.hot.accept(acceptHMRUpdate(useRouteStore, import.meta.hot));
 }

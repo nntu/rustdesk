@@ -185,51 +185,48 @@
 </template>
 
 <script setup>
-  import { computed, onActivated, onMounted, reactive, ref, watch } from 'vue'
-  import { list } from '@/api/my/peer'
-  import { ElMessage, ElMessageBox } from 'element-plus'
-  import { toWebClientLink } from '@/utils/webclient'
-  import { T } from '@/utils/i18n'
-  import { timeAgo } from '@/utils/time'
-  import { jsonToCsv, downBlob } from '@/utils/file'
-  import { useRepositories as useABRepositories } from '@/views/address_book/index'
-  import { useAppStore } from '@/store/app'
-  import { connectByClient } from '@/utils/peer'
-  import { CopyDocument } from '@element-plus/icons-vue'
-  import { handleClipboard } from '@/utils/clipboard'
-  import { batchCreateFromPeers, list as abList } from '@/api/my/address_book'
-  import { showRemotePasswordDialog } from '@/utils/remotePassword'
+import { list as abList, batchCreateFromPeers } from '@/api/my/address_book';
+import { list } from '@/api/my/peer';
+import { useAppStore } from '@/store/app';
+import { downBlob, jsonToCsv } from '@/utils/file';
+import { T } from '@/utils/i18n';
+import { showRemotePasswordDialog } from '@/utils/remotePassword';
+import { useRepositories as useABRepositories } from '@/views/address_book/index';
+import { ElMessage } from 'element-plus';
+import { computed, onActivated, onMounted, reactive, ref, watch } from 'vue';
 
-  const appStore = useAppStore()
-  const listRes = reactive({
-    list: [], total: 0, loading: false,
-  })
-  const listQuery = reactive({
-    page: 1,
-    page_size: 10,
-    time_ago: null,
-    id: '',
-    hostname: '',
-  })
+const appStore = useAppStore();
+const listRes = reactive({
+  list: [],
+  total: 0,
+  loading: false,
+});
+const listQuery = reactive({
+  page: 1,
+  page_size: 10,
+  time_ago: null,
+  id: '',
+  hostname: '',
+});
 
-  const getList = async () => {
-    listRes.loading = true
-    const res = await list(listQuery).catch(_ => false)
-    listRes.loading = false
-    if (res) {
-      listRes.list = res.data.list
-      listRes.total = res.data.total
-    }
+const getList = async () => {
+  listRes.loading = true;
+  const res = await list(listQuery).catch((_) => false);
+  listRes.loading = false;
+  if (res) {
+    listRes.list = res.data.list;
+    listRes.total = res.data.total;
   }
-  const handlerQuery = () => {
-    if (listQuery.page === 1) {
-      getList()
-    } else {
-      listQuery.page = 1
-    }
+};
+const handlerQuery = () => {
+  if (listQuery.page === 1) {
+    getList();
+  } else {
+    listQuery.page = 1;
   }
+};
 
-  /*const del = async (row) => {
+/*const del = async (row) => {
     const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('Delete') }), {
       confirmButtonText: T('Confirm'),
       cancelButtonText: T('Cancel'),
@@ -245,110 +242,115 @@
       getList()
     }
   }*/
-  onMounted(getList)
-  onActivated(getList)
+onMounted(getList);
+onActivated(getList);
 
-  watch(() => listQuery.page, getList)
+watch(() => listQuery.page, getList);
 
-  watch(() => listQuery.page_size, handlerQuery)
+watch(() => listQuery.page_size, handlerQuery);
 
-  const formVisible = ref(false)
-  const formData = reactive({
-    row_id: 0,
-    cpu: '',
-    hostname: '',
-    id: '',
-    memory: '',
-    os: '',
-    username: '',
-    uuid: '',
-    version: '',
-  })
+const formVisible = ref(false);
+const formData = reactive({
+  row_id: 0,
+  cpu: '',
+  hostname: '',
+  id: '',
+  memory: '',
+  os: '',
+  username: '',
+  uuid: '',
+  version: '',
+});
 
-  const toView = (row) => {
-    formVisible.value = true
-    //Assign the data in row to formData
-    Object.keys(formData).forEach(key => {
-      formData[key] = row[key]
-    })
+const toView = (row) => {
+  formVisible.value = true;
+  //Assign the data in row to formData
+  Object.keys(formData).forEach((key) => {
+    formData[key] = row[key];
+  });
+};
+
+const viewRemotePassword = async (row) => {
+  const res = await abList({ id: row.id, page: 1, page_size: 20 }).catch(() => false);
+  if (!res || !res.data.list.length) {
+    ElMessage.warning(
+      T('NoRemotePassword') ||
+        'Khong co mat khau remote. Hay chay deploy hoac them vao Address Book.',
+    );
+    return;
   }
+  const entry = res.data.list.find((item) => item.hash || item.password) || res.data.list[0];
+  showRemotePasswordDialog(entry.hash || entry.password, {
+    id: row.id,
+    hostname: row.hostname,
+    alias: entry.alias,
+  });
+};
 
-  const viewRemotePassword = async (row) => {
-    const res = await abList({ id: row.id, page: 1, page_size: 20 }).catch(() => false)
-    if (!res || !res.data.list.length) {
-      ElMessage.warning(T('NoRemotePassword') || 'Khong co mat khau remote. Hay chay deploy hoac them vao Address Book.')
-      return
-    }
-    const entry = res.data.list.find(item => item.hash || item.password) || res.data.list[0]
-    showRemotePasswordDialog(entry.hash || entry.password, {
-      id: row.id,
-      hostname: row.hostname,
-      alias: entry.alias,
-    })
+const timeDis = (time) => {
+  const now = new Date().getTime();
+  const after = new Date(time * 1000).getTime();
+  return (now - after) / 1000;
+};
+
+const formatDeployedAt = (ts) => {
+  if (!ts) return '-';
+  return new Date(ts * 1000).toLocaleString();
+};
+
+const timeFilters = computed(() => [
+  { text: T('MinutesLess', { param: 1 }, 1), value: -60 },
+  { text: T('HoursLess', { param: 1 }, 1), value: -3600 },
+  { text: T('DaysLess', { param: 1 }, 1), value: -86400 },
+  { text: '---------', value: 0 },
+  { text: T('MinutesAgo', { param: 1 }, 1), value: 60 },
+  { text: T('HoursAgo', { param: 1 }, 1), value: 3600 },
+  { text: T('DaysAgo', { param: 1 }, 1), value: 86400 },
+  { text: T('MonthsAgo', { param: 1 }, 1), value: 2592000 },
+  // { text: T('YearsAgo', { param: 1 }, 1), value: 31536000 },
+]);
+
+const toExport = async () => {
+  const q = { ...listQuery };
+  q.page_size = 10000;
+  q.page = 1;
+  const res = await list(q).catch((_) => false);
+  if (res) {
+    const data = res.data.list.map((item) => {
+      item.last_online_time = item.last_online_time
+        ? new Date(item.last_online_time * 1000).toLocaleString()
+        : '-';
+      item.user_id = undefined;
+      item.user = undefined;
+      return item;
+    });
+    const csv = jsonToCsv(data);
+    downBlob(csv, 'peers.csv');
   }
+};
 
-  const timeDis = (time) => {
-    let now = new Date().getTime()
-    let after = new Date(time * 1000).getTime()
-    return (now - after) / 1000
-  }
+const {
+  platformList: ABPlatformList,
+  formVisible: ABFormVisible,
+  formData: ABFormData,
+  collectionListResForUpdate,
+  getCollectionListForUpdate,
+  tagListRes,
+  changeCollectionForUpdate,
+  submit: ABSubmit,
+  fromPeer,
+} = useABRepositories('my');
+onMounted(getCollectionListForUpdate);
+const toAddressBook = (peer) => {
+  fromPeer(peer);
+  ABFormVisible.value = true;
+};
 
-  const formatDeployedAt = (ts) => {
-    if (!ts) return '-'
-    return new Date(ts * 1000).toLocaleString()
-  }
-
-  const timeFilters = computed(() => [
-    { text: T('MinutesLess', { param: 1 }, 1), value: -60 },
-    { text: T('HoursLess', { param: 1 }, 1), value: -3600 },
-    { text: T('DaysLess', { param: 1 }, 1), value: -86400 },
-    { text: '---------', value: 0 },
-    { text: T('MinutesAgo', { param: 1 }, 1), value: 60 },
-    { text: T('HoursAgo', { param: 1 }, 1), value: 3600 },
-    { text: T('DaysAgo', { param: 1 }, 1), value: 86400 },
-    { text: T('MonthsAgo', { param: 1 }, 1), value: 2592000 },
-    // { text: T('YearsAgo', { param: 1 }, 1), value: 31536000 },
-  ])
-
-  const toExport = async () => {
-    const q = { ...listQuery }
-    q.page_size = 10000
-    q.page = 1
-    const res = await list(q).catch(_ => false)
-    if (res) {
-      const data = res.data.list.map(item => {
-        item.last_online_time = item.last_online_time ? new Date(item.last_online_time * 1000).toLocaleString() : '-'
-        delete item.user_id
-        delete item.user
-        return item
-      })
-      const csv = jsonToCsv(data)
-      downBlob(csv, 'peers.csv')
-    }
-  }
-
-  const {
-    platformList: ABPlatformList,
-    formVisible: ABFormVisible,
-    formData: ABFormData,
-    collectionListResForUpdate,
-    getCollectionListForUpdate,
-    tagListRes,
-    changeCollectionForUpdate,
-    submit: ABSubmit,
-    fromPeer,
-  } = useABRepositories('my')
-  onMounted(getCollectionListForUpdate)
-  const toAddressBook = (peer) => {
-    fromPeer(peer)
-    ABFormVisible.value = true
-  }
-
-  const multipleSelection = ref([])
-  const handleSelectionChange = (val) => {
-    multipleSelection.value = val
-  }
-  /*const toBatchDelete = async () => {
+const multipleSelection = ref([]);
+const handleSelectionChange = (val) => {
+  multipleSelection.value = val;
+};
+/*const toBatchDelete = async () => {
     if (!multipleSelection.value.length) {
       ElMessage.warning(T('PleaseSelectData'))
       return false
@@ -369,38 +371,36 @@
     }
   }*/
 
-  const batchABFormVisible = ref(false)
-  const toBatchAddToAB = () => {
-    batchABFormVisible.value = true
+const batchABFormVisible = ref(false);
+const toBatchAddToAB = () => {
+  batchABFormVisible.value = true;
+};
+const batchABFormData = ref({
+  collection_id: 0,
+  tags: [],
+  peer_ids: [],
+});
+const changeCollectionForBatchCreateAB = (val) => {
+  batchABFormData.value.tags = [];
+  changeCollectionForUpdate(val);
+};
+const submitBatchAddToAB = async () => {
+  if (multipleSelection.value.length === 0) {
+    ElMessage.warning(T('PleaseSelectData'));
+    return false;
   }
-  const batchABFormData = ref({
-    collection_id: 0,
-    tags: [],
-    peer_ids: [],
-  })
-  const changeCollectionForBatchCreateAB = (val) => {
-    batchABFormData.value.tags = []
-    changeCollectionForUpdate(val)
-  }
-  const submitBatchAddToAB = async () => {
-    if (multipleSelection.value.length === 0) {
-      ElMessage.warning(T('PleaseSelectData'))
-      return false
-    }
-    batchABFormData.value.peer_ids = multipleSelection.value.map(i => i.row_id)
-    if (!batchABFormData.value.peer_ids.length) {
-      ElMessage.warning(T('PleaseSelectData'))
-      return false
-    }
-
-    const res = await batchCreateFromPeers(batchABFormData.value).catch(_ => false)
-    if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      batchABFormVisible.value = false
-    }
+  batchABFormData.value.peer_ids = multipleSelection.value.map((i) => i.row_id);
+  if (!batchABFormData.value.peer_ids.length) {
+    ElMessage.warning(T('PleaseSelectData'));
+    return false;
   }
 
-
+  const res = await batchCreateFromPeers(batchABFormData.value).catch((_) => false);
+  if (res) {
+    ElMessage.success(T('OperationSuccess'));
+    batchABFormVisible.value = false;
+  }
+};
 </script>
 
 <style scoped lang="scss">

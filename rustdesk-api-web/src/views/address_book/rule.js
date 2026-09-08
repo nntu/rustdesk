@@ -1,71 +1,83 @@
-import { computed, reactive, ref } from 'vue'
-import { list as admin_list, create as admin_create, update as admin_update, remove as admin_remove } from '@/api/address_book_collection_rule'
-import { list as my_list, create as my_create, update as my_update, remove as my_remove } from '@/api/my/address_book_collection_rule'
-import { groupUsers } from '@/api/user'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { T } from '@/utils/i18n'
+import {
+  create as admin_create,
+  list as admin_list,
+  remove as admin_remove,
+  update as admin_update,
+} from '@/api/address_book_collection_rule';
+import {
+  create as my_create,
+  list as my_list,
+  remove as my_remove,
+  update as my_update,
+} from '@/api/my/address_book_collection_rule';
+import { groupUsers } from '@/api/user';
+import { T } from '@/utils/i18n';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { computed, reactive, ref } from 'vue';
 
 const apis = {
   admin: { list: admin_list, remove: admin_remove, update: admin_update, create: admin_create },
   my: { list: my_list, remove: my_remove, create: my_create, update: my_update },
-}
+};
 
-export function useRepositories (api_type = 'my') {
+export function useRepositories(api_type = 'my') {
   const listRes = reactive({
-    list: [], total: 0, loading: false,
-  })
+    list: [],
+    total: 0,
+    loading: false,
+  });
   const listQuery = reactive({
     page: 1,
     page_size: 10,
     collection_id: null,
-  })
+  });
 
   const getList = async () => {
-    listRes.loading = true
-    const res = await apis[api_type].list(listQuery).catch(_ => false)
-    listRes.loading = false
+    listRes.loading = true;
+    const res = await apis[api_type].list(listQuery).catch((_) => false);
+    listRes.loading = false;
     if (res) {
-      listRes.list = res.data.list
-      listRes.total = res.data.total
+      listRes.list = res.data.list;
+      listRes.total = res.data.total;
     }
-  }
+  };
   const handlerQuery = () => {
     if (listQuery.page === 1) {
-      getList()
+      getList();
     } else {
-      listQuery.page = 1
+      listQuery.page = 1;
     }
-  }
+  };
 
   const del = async (row) => {
     const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('Delete') }), {
       confirmButtonText: T('Confirm'),
       cancelButtonText: T('Cancel'),
       type: 'warning',
-    }).catch(_ => false)
+    }).catch((_) => false);
     if (!cf) {
-      return false
+      return false;
     }
 
-    const res = await apis[api_type].remove({ id: row.id }).catch(_ => false)
+    const res = await apis[api_type].remove({ id: row.id }).catch((_) => false);
     if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      getList()
+      ElMessage.success(T('OperationSuccess'));
+      getList();
     }
-  }
+  };
 
-  const rules = computed(_ => [
+  const rules = computed((_) => [
     { label: T('Read'), value: 1 },
     { label: T('ReadWrite'), value: 2 },
     { label: T('FullControl'), value: 3 },
-  ])
-  const TYPE_U = 1
-  const TYPE_G = 2
-  const types = computed(_ => [
+  ]);
+  const TYPE_U = 1;
+  const TYPE_G = 2;
+  const types = computed((_) => [
     { label: T('Group'), value: TYPE_G },
     { label: T('User'), value: TYPE_U },
-  ])
-  const formVisible = ref(false)
+  ]);
+  const formVisible = ref(false);
   const formData = reactive({
     id: 0,
     collection_id: null,
@@ -75,68 +87,67 @@ export function useRepositories (api_type = 'my') {
     u_id: null,
     to_id: null,
     user_id: null,
-  })
+  });
 
   const toEdit = (row) => {
-    formVisible.value = true
+    formVisible.value = true;
     //Assign the data in row to formData
-    Object.keys(formData).forEach(key => {
-      formData[key] = row[key]
-    })
+    Object.keys(formData).forEach((key) => {
+      formData[key] = row[key];
+    });
     if (row.type === TYPE_U) {
-      formData.u_id = row.to_id
-      formData.g_id = users.value.find(u => u.id === row.to_id)?.group_id
+      formData.u_id = row.to_id;
+      formData.g_id = users.value.find((u) => u.id === row.to_id)?.group_id;
     } else {
-      formData.g_id = row.to_id
-      formData.u_id = null
+      formData.g_id = row.to_id;
+      formData.u_id = null;
     }
-  }
+  };
   const toAdd = () => {
     //Initialize formData
-    formData.id = 0
-    formData.type = TYPE_U
-    formData.rule = 1
-    formData.g_id = null
-    formData.u_id = null
+    formData.id = 0;
+    formData.type = TYPE_U;
+    formData.rule = 1;
+    formData.g_id = null;
+    formData.u_id = null;
 
-    formVisible.value = true
-
-  }
+    formVisible.value = true;
+  };
   const submit = async () => {
-    const api = formData.id ? apis[api_type].update : apis[api_type].create
+    const api = formData.id ? apis[api_type].update : apis[api_type].create;
     const form = {
       ...formData,
-    }
-    form.to_id = form.type === TYPE_G ? form.g_id : form.u_id
-    const res = await api(form).catch(_ => false)
+    };
+    form.to_id = form.type === TYPE_G ? form.g_id : form.u_id;
+    const res = await api(form).catch((_) => false);
     if (res) {
-      ElMessage.success(T('OperationSuccess'))
-      formVisible.value = false
-      getList()
+      ElMessage.success(T('OperationSuccess'));
+      formVisible.value = false;
+      getList();
     }
-  }
-  const groups = ref([])
-  const users = ref([])
+  };
+  const groups = ref([]);
+  const users = ref([]);
   const getGroupUsers = async () => {
-    const res = await groupUsers().catch(_ => false)
+    const res = await groupUsers().catch((_) => false);
     if (res) {
-      groups.value = res.data.groups.map(item => {
+      groups.value = res.data.groups.map((item) => {
         if (!item.children) {
-          item.children = []
+          item.children = [];
         }
-        res.data.users.map(u => {
+        res.data.users.map((u) => {
           if (item.id === u.group_id) {
-            item.children.push(u)
+            item.children.push(u);
           }
-        })
-        return item
-      })
-      users.value = res.data.users
+        });
+        return item;
+      });
+      users.value = res.data.users;
     }
-  }
+  };
   const changeGId = () => {
-    formData.u_id = null
-  }
+    formData.u_id = null;
+  };
   return {
     listRes,
     listQuery,
@@ -156,5 +167,5 @@ export function useRepositories (api_type = 'my') {
     TYPE_G,
     TYPE_U,
     changeGId,
-  }
+  };
 }

@@ -13,85 +13,86 @@
 </template>
 
 <script>
-  import { defineComponent, ref, computed } from 'vue'
-  import pca from '@/utils/pca.json'
+import pca from '@/utils/pca.json';
+import { computed, defineComponent } from 'vue';
 
-  export default defineComponent({
-    name: 'FormAddress',
-    props: {
-      prop: {
-        type: String,
-        default: '',
-      },
-      label: {
-        type: String,
-        default: 'Province/City/District',
-      },
-      province: {
-        type: String,
-        default: '',
-      },
-      city: {
-        type: String,
-        default: '',
-      },
-      county: {
-        type: String,
-        default: '',
-      },
+export default defineComponent({
+  name: 'FormAddress',
+  props: {
+    prop: {
+      type: String,
+      default: '',
     },
-    setup (props, context) {
-      const cities = computed(() => pca[props.province] || [])
-      const counties = computed(() => pca[props.province] && pca[props.province][props.city] ? pca[props.province][props.city] : [])
-
-      let currentProvince = computed({
-        get: () => props.province,
-        set: (val) => {
-          context.emit('update:province', val)
-        },
-      })
-      let currentCity = computed({
-        get: () => props.city,
-        set: (val) => {
-          context.emit('update:city', val)
-        },
-      })
-      let currentCounty = computed({
-        get: () => props.county,
-        set: (val) => {
-          context.emit('update:county', val)
-        },
-      })
-
-      const changeProvince = (val) => {
-        currentCity = ''
-        currentCounty = ''
-        context.emit('changeProvince', val)
-      }
-      const changeCity = (val) => {
-        currentCounty = ''
-        context.emit('changeCity', val)
-      }
-      const changeCounty = (val) => {
-        context.emit('changeCounty', val)
-      }
-
-      return {
-        pca,
-        cities,
-        counties,
-
-        currentProvince,
-        currentCity,
-        currentCounty,
-
-        changeProvince,
-        changeCity,
-        changeCounty,
-      }
+    label: {
+      type: String,
+      default: 'Province/City/District',
     },
+    province: {
+      type: String,
+      default: '',
+    },
+    city: {
+      type: String,
+      default: '',
+    },
+    county: {
+      type: String,
+      default: '',
+    },
+  },
+  setup(props, context) {
+    const cities = computed(() => pca[props.province] || []);
+    const counties = computed(() =>
+      pca[props.province] && pca[props.province][props.city] ? pca[props.province][props.city] : [],
+    );
 
-  })
+    const currentProvince = computed({
+      get: () => props.province,
+      set: (val) => {
+        context.emit('update:province', val);
+      },
+    });
+    let currentCity = computed({
+      get: () => props.city,
+      set: (val) => {
+        context.emit('update:city', val);
+      },
+    });
+    let currentCounty = computed({
+      get: () => props.county,
+      set: (val) => {
+        context.emit('update:county', val);
+      },
+    });
+
+    const changeProvince = (val) => {
+      currentCity = '';
+      currentCounty = '';
+      context.emit('changeProvince', val);
+    };
+    const changeCity = (val) => {
+      currentCounty = '';
+      context.emit('changeCity', val);
+    };
+    const changeCounty = (val) => {
+      context.emit('changeCounty', val);
+    };
+
+    return {
+      pca,
+      cities,
+      counties,
+
+      currentProvince,
+      currentCity,
+      currentCounty,
+
+      changeProvince,
+      changeCity,
+      changeCounty,
+    };
+  },
+});
 </script>
 
 <style scoped>
