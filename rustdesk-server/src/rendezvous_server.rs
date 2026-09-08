@@ -29,6 +29,7 @@ use hbb_common::{
     tokio_util::codec::Framed,
     try_into_v4,
     udp::FramedSocket,
+    stun,
     AddrMangle, ResultType,
 };
 use ipnetwork::Ipv4Network;
@@ -353,6 +354,14 @@ impl RendezvousServer {
         socket: &mut FramedSocket,
         key: &str,
     ) -> ResultType<()> {
+        if stun::is_stun_packet(bytes) {
+            if let Some(resp) = stun::handle_stun_request(bytes, addr) {
+                log::trace!("Handled STUN Binding Request from {}", addr);
+                socket.send_bytes(Bytes::from(resp), addr).await?;
+                return Ok(());
+            }
+        }
+
         if let Ok(msg_in) = RendezvousMessage::parse_from_bytes(bytes) {
             match msg_in.union {
                 Some(rendezvous_message::Union::RegisterPeer(rp)) => {

@@ -27,6 +27,7 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handlerQuery">{{ T('Filter') }}</el-button>
+          <el-button type="warning" @click="toAutoDeploy">{{ T('AutoDeploy') || 'Cài đặt tự động' }}</el-button>
           <el-button type="danger" @click="toAdd">{{ T('Add') }}</el-button>
           <el-button type="success" @click="toExport">{{ T('Export') }}</el-button>
           <el-popover :visible="showImport" placement="bottom" :width="600">
@@ -231,6 +232,7 @@
 
 <script setup>
   import { computed, onActivated, onMounted, reactive, ref, watch } from 'vue'
+  import { useRouter } from 'vue-router'
   import { batchRemove, create, list, remove, update } from '@/api/peer'
   import { list as groupList } from '@/api/device_group'
   import { ElMessage, ElMessageBox } from 'element-plus'
@@ -248,7 +250,12 @@
   import createABForm from '@/views/peer/createABForm.vue'
   import { UploadFilled } from '@element-plus/icons-vue'
 
+  const router = useRouter()
   const appStore = useAppStore()
+
+  const toAutoDeploy = () => {
+    router.push('/my/client_config')
+  }
 
   //group
   const groupListRes = reactive({

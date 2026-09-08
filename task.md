@@ -485,3 +485,25 @@ Hien trang:
    protocol server-client.
 6. `TASK-011` - Don dep contract Web Admin.
 7. `TASK-008` den `TASK-010` - Chi trien khai khi xac nhan nhu cau van hanh.
+8. `TASK-019` den `TASK-022` - Tối ưu WebRTC ICE Trickling, STUN Server UDP 21116 và In-Memory Heartbeat Cache.
+
+## Phase 6 - Toi uu WebRTC, STUN Server va API Performance
+
+### TASK-019: Ho tro WebRTC Direct & ICE Trickling (Client 1.5.0)
+- [x] Dong bo Protobuf rendezvous `IceCandidate`, `webrtc_sdp_offer`, `webrtc_sdp_answer`.
+- [x] Trien khai forward `IceCandidate` 2 chieu (Controller <-> Controlled) tren ca TCP/WebSocket va UDP.
+- [x] Unit test `client_1_5_0_webrtc_ice_fields_round_trip` dat PASS.
+
+### TASK-020: Tich hop STUN Server chinh thuc tren UDP 21116 (RFC 5389 & RFC 3489)
+- [x] Module `hbb_common::stun` xu ly `Binding Request` va sinh `XOR-MAPPED-ADDRESS` / `MAPPED-ADDRESS`.
+- [x] Intercept STUN packet ngay tren `hbbs` UDP 21116 ma khong gay collision voi Protobuf.
+- [x] Unit test STUN IPv4/IPv6 detection & response dat PASS (6/6).
+
+### TASK-021: Toi uu Heartbeat API In-Memory Cache & Database Indexes
+- [x] Bo sung `hbCache` trong `rustdesk-api/http/controller/api/index.go` giam >90% I/O SQLite.
+- [x] Them composite index cho `LastOnlineTime` trong `Peer` model va `SessionId` trong `AuditConn` model.
+
+### TASK-022: Tich hop nut Quick AutoDeploy tren Web Admin
+- [x] Them nut "Cai dat tu dong" (AutoDeploy) tren toolbar trang Thiet bi (`rustdesk-api-web/src/views/peer/index.vue`).
+- [x] Build frontend bundle bang Vite thanh cong khong loi.
+

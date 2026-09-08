@@ -13,11 +13,23 @@ import (
 	"rustdesk-api/service"
 	"rustdesk-api/utils"
 	"strings"
+	"sync"
 	"time"
 )
 
 type Index struct {
 }
+
+type hbCacheEntry struct {
+	rowId        uint
+	lastOnlineIp string
+	lastDbUpdate int64
+}
+
+var (
+	hbCache   = make(map[string]hbCacheEntry)
+	hbCacheMu sync.RWMutex
+)
 
 // Index Home Page
 // @Tags Home Page
@@ -47,23 +59,45 @@ func (i *Index) Index(c *gin.Context) {
 func (i *Index) Heartbeat(c *gin.Context) {
 	info := &requstform.PeerInfoInHeartbeat{}
 	err := c.ShouldBindJSON(info)
-	if err != nil {
+	if err != nil || info.Uuid == "" || info.Id == "" {
 		c.JSON(http.StatusOK, gin.H{})
 		return
 	}
-	if info.Uuid == "" {
+
+	clientIp := c.ClientIP()
+	now := time.Now().Unix()
+
+	hbCacheMu.RLock()
+	cached, found := hbCache[info.Id]
+	hbCacheMu.RUnlock()
+
+	if found {
+		if cached.lastOnlineIp != clientIp || now-cached.lastDbUpdate >= 180 {
+			upp := &model.Peer{RowId: cached.rowId, LastOnlineTime: now, LastOnlineIp: clientIp}
+			service.AllService.PeerService.Update(upp)
+			hbCacheMu.Lock()
+			hbCache[info.Id] = hbCacheEntry{
+				rowId:        cached.rowId,
+				lastOnlineIp: clientIp,
+				lastDbUpdate: now,
+			}
+			hbCacheMu.Unlock()
+		}
 		c.JSON(http.StatusOK, gin.H{})
 		return
 	}
+
 	peer := service.AllService.PeerService.FindById(info.Id)
-	if peer == nil || peer.RowId == 0 {
-		c.JSON(http.StatusOK, gin.H{})
-		return
-	}
-	//If it is within 40s, it will not be updated.
-	if time.Now().Unix()-peer.LastOnlineTime >= 30 {
-		upp := &model.Peer{RowId: peer.RowId, LastOnlineTime: time.Now().Unix(), LastOnlineIp: c.ClientIP()}
+	if peer != nil && peer.RowId != 0 {
+		upp := &model.Peer{RowId: peer.RowId, LastOnlineTime: now, LastOnlineIp: clientIp}
 		service.AllService.PeerService.Update(upp)
+		hbCacheMu.Lock()
+		hbCache[info.Id] = hbCacheEntry{
+			rowId:        peer.RowId,
+			lastOnlineIp: clientIp,
+			lastDbUpdate: now,
+		}
+		hbCacheMu.Unlock()
 	}
 	c.JSON(http.StatusOK, gin.H{})
 }

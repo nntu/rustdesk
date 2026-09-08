@@ -115,3 +115,52 @@ fn client_1_5_0_webrtc_ice_fields_round_trip() {
     assert_eq!(ice.candidate, "candidate:1 1 UDP 2130706431 192.168.1.100 50000 typ host");
 }
 
+#[test]
+fn test_stun_packet_detection_and_binding_response_v4() {
+    use hbb_common::stun::*;
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+
+    let tx_id = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    let req = create_binding_request(tx_id);
+    assert!(is_stun_packet(&req));
+
+    let client_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(123, 45, 67, 89)), 54321);
+    let resp = handle_stun_request(&req, client_addr).expect("STUN response generated");
+
+    let mapped_addr = parse_xor_mapped_address(&resp).expect("Parsed XOR-MAPPED-ADDRESS");
+    assert_eq!(mapped_addr, client_addr);
+}
+
+#[test]
+fn test_stun_packet_detection_and_binding_response_v6() {
+    use hbb_common::stun::*;
+    use std::net::{IpAddr, Ipv6Addr, SocketAddr};
+
+    let tx_id = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
+    let req = create_binding_request(tx_id);
+    assert!(is_stun_packet(&req));
+
+    let client_addr = SocketAddr::new(
+        IpAddr::V6(Ipv6Addr::new(0x2001, 0x0db8, 0x85a3, 0, 0, 0x8a2e, 0x0370, 0x7334)),
+        43210,
+    );
+    let resp = handle_stun_request(&req, client_addr).expect("STUN response generated");
+
+    let mapped_addr = parse_xor_mapped_address(&resp).expect("Parsed XOR-MAPPED-ADDRESS");
+    assert_eq!(mapped_addr, client_addr);
+}
+
+#[test]
+fn test_protobuf_not_confused_with_stun() {
+    use hbb_common::stun::is_stun_packet;
+
+    let mut message = RendezvousMessage::new();
+    message.set_register_pk(RegisterPk {
+        id: "123456789".to_owned(),
+        ..Default::default()
+    });
+    let protobuf_bytes = message.write_to_bytes().unwrap();
+    assert!(!is_stun_packet(&protobuf_bytes));
+}
+
+

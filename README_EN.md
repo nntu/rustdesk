@@ -8,20 +8,20 @@ Documentation: [Tiếng Việt](README.md) | **English**
 
 ## Main Components
 
-- `hbbs`: ID/Rendezvous server for device registration and NAT traversal.
+- `hbbs`: ID/Rendezvous server, WebRTC Direct Signaling, ICE Trickling, and **Integrated STUN Server (RFC 5389 & RFC 3489)** on UDP 21116.
 - `hbbr`: Relay server used when direct connections are unavailable.
-- `rustdesk-api`: Admin API for authentication, server configuration, address book, and deploy tokens.
-- `rustdesk-api-web`: Web Admin UI for users, devices, address book, client configuration, and deploy commands.
+- `rustdesk-api`: Admin API for authentication, server configuration, address book, in-memory heartbeat caching, and deploy tokens.
+- `rustdesk-api-web`: Web Admin UI for users, devices, address book, client configuration, and 1-click deploy command generation.
 - `reverse-proxy`: Nginx entrypoint for API, Web Admin, and WebSocket traffic.
 
 ## Upstream Sources And Forks
 
 | Component | Description | Fork source | Base version | Changes from upstream/base |
 |---|---|---|---|---|
-| `hbbs` | RustDesk ID/Rendezvous server | `https://github.com/rustdesk/rustdesk-server` | `1.1.15` | Integrates `MUST_LOGIN` checks, shares `JWT_SECRET` with the API, and supports the required login/deployment flow before device registration. |
+| `hbbs` | RustDesk ID/Rendezvous server | `https://github.com/rustdesk/rustdesk-server` | `1.1.15` | Integrates **Official STUN Server on UDP 21116** (RFC 5389/3489); full WebRTC Direct & ICE Trickling support for Client 1.5.0; `MUST_LOGIN` checks with shared `JWT_SECRET`. |
 | `hbbr` | RustDesk relay server | `https://github.com/rustdesk/rustdesk-server` | `1.1.15` | Packaged into the same Docker stack, shares the `hbbs` network namespace, and uses stack-level relay/domain configuration. |
-| `rustdesk-api` | API server | `https://github.com/lejianwen/rustdesk-api` | `2.7` | Adds short-lived deploy tokens, a PowerShell deploy-script endpoint, deploy-token auth for `/api/devices/deploy` and `/api/devices/cli`, `hbbs` public-key discovery, and automatic client server configuration. Removed `webclient2` (`resources/web2`) because of DMCA/copyright issues. |
-| `rustdesk-api-web` | Web Admin | `https://github.com/lejianwen/rustdesk-api` | `2.7` | Adds `My -> Client Config`, client configuration display, self-downloading deploy command generation, script download, command copy actions, and token expiration metadata. |
+| `rustdesk-api` | API server | `https://github.com/lejianwen/rustdesk-api` | `2.7` | Adds **In-Memory Heartbeat Cache** (reduces SQLite disk I/O >90%), database indexes for `LastOnlineTime`/`SessionId`; short-lived deploy tokens, PowerShell deploy-script endpoint, deploy-token auth for `/api/devices/deploy` and `/api/devices/cli`, `hbbs` public-key discovery. Removed `webclient2` (`resources/web2`) because of DMCA/copyright issues. |
+| `rustdesk-api-web` | Web Admin | `https://github.com/lejianwen/rustdesk-api` | `2.7` | Adds **1-Click AutoDeploy** button on Devices page; `My -> Client Config`, client configuration display, self-downloading deploy command generation, script download, command copy actions, and token expiration metadata. |
 | Docker/ops in this repo | Local integration/custom fork | Local working tree | Based on the sources above | Adds `docker-compose.yml`, `Dockerfile`, `Dockerfile.server`, `nginx.conf`, `deploy-host.ps1`, shared data volumes, and operational documentation for self-hosted deployment. |
 
 ### Copyright & External Forks Notes
@@ -81,12 +81,23 @@ rustdesk-api --> read-only ./data/server/id_ed25519.pub
 | `8082` | TCP | Nginx | HTTP entrypoint in the current compose stack |
 | `21114` | TCP | API through the `hbbs` namespace | Direct API/Web Admin access |
 | `21115` | TCP | `hbbs` | Control port |
-| `21116` | TCP/UDP | `hbbs` | ID/Rendezvous and NAT punch |
+| `21116` | TCP | `hbbs` | ID/Rendezvous TCP signaling |
+| `21116` | UDP | `hbbs` | **ID/Rendezvous, NAT punch, Integrated STUN Server (RFC 5389 & RFC 3489)** |
 | `21117` | TCP | `hbbr` | Relay |
 | `21118` | TCP | `hbbs` | WebSocket ID for Web Client |
 | `21119` | TCP | `hbbr` | WebSocket Relay for Web Client |
 
 For production, place a TLS reverse proxy or load balancer in front of `8082`, then point the public API/Web Admin domain to it.
+
+## NAT Autonomy & Integrated STUN Server (UDP 21116)
+
+`hbbs` is natively integrated with an RFC 5389 (`XOR-MAPPED-ADDRESS`) and RFC 3489 (`MAPPED-ADDRESS`) STUN Server directly on UDP port `21116`:
+- **No Third-Party Dependency**: Clients resolve reflexive NAT candidates directly from your self-hosted server without relying on public STUN services (Google/Cloudflare).
+- **100% WebRTC Direct & ICE Trickling**: Facilitates ultra-fast direct P2P connections and dynamic ICE candidate exchange for RustDesk Client 1.5.0.
+- **Client Configuration**:
+  ```text
+  stun:<YOUR_SERVER_DOMAIN_OR_IP>:21116
+  ```
 
 ## Environment Variables
 

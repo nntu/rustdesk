@@ -108,6 +108,24 @@ impl FramedSocket {
         Ok(())
     }
 
+    #[inline]
+    pub async fn send_bytes(
+        &mut self,
+        bytes: Bytes,
+        addr: impl IntoTargetAddr<'_>,
+    ) -> ResultType<()> {
+        let addr = addr.into_target_addr()?.to_owned();
+        match self {
+            Self::Direct(f) => {
+                if let TargetAddr::Ip(addr) = addr {
+                    f.send((bytes, addr)).await?
+                }
+            }
+            Self::ProxySocks(f) => f.send((bytes, addr)).await?,
+        };
+        Ok(())
+    }
+
     // https://stackoverflow.com/a/68733302/1926020
     #[inline]
     pub async fn send_raw(

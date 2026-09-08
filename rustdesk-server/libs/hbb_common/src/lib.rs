@@ -21,6 +21,7 @@ pub mod proxy;
 pub mod socket_client;
 pub mod tcp;
 pub mod udp;
+pub mod stun;
 pub use env_logger;
 pub use log;
 pub mod bytes_codec;
