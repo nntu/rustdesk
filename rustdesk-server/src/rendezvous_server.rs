@@ -55,6 +55,9 @@ enum Sink {
     TcpStream(TcpStreamSink),
     Ws(WsSink),
 }
+type SharedSink = Arc<Mutex<Sink>>;
+const SIGNAL_SEND_TIMEOUT: u64 = 3_000;
+const SIGNAL_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 type Sender = mpsc::UnboundedSender<Data>;
 type Receiver = mpsc::UnboundedReceiver<Data>;
 static ROTATION_RELAY_SERVER: AtomicUsize = AtomicUsize::new(0);
@@ -83,7 +86,7 @@ struct Inner {
 
 #[derive(Clone)]
 pub struct RendezvousServer {
-    tcp_punch: Arc<Mutex<HashMap<SocketAddr, Sink>>>,
+    tcp_punch: Arc<Mutex<HashMap<SocketAddr, SharedSink>>>,
     pm: PeerMap,
     tx: Sender,
     relay_servers: Arc<RelayServers>,
@@ -275,12 +278,8 @@ impl RendezvousServer {
                 Some(data) = rx.recv() => {
                     match data {
                         Data::Msg(msg, addr) => {
-                            let mut tcp = self.tcp_punch.lock().await.remove(&try_into_v4(addr));
-                            if tcp.is_some() {
-                                Self::send_to_sink(&mut tcp, *msg).await;
-                                if let Some(sink) = tcp {
-                                    self.tcp_punch.lock().await.insert(try_into_v4(addr), sink);
-                                }
+                            if self.tcp_punch.lock().await.contains_key(&try_into_v4(addr)) {
+                                self.send_to_tcp(*msg, addr).await;
                             } else {
                                 allow_err!(socket.send(msg.as_ref(), addr).await);
                             }
@@ -450,12 +449,17 @@ impl RendezvousServer {
                             );
                         }
                     }
-                    if changed {
-                        self.pm.update_pk(id, peer, addr, rk.uuid, rk.pk, ip).await;
-                    }
+                    let result = if changed {
+                        self.pm.update_pk(id, peer, addr, rk.uuid, rk.pk, ip).await
+                    } else {
+                        let mut state = peer.write().await;
+                        state.socket_addr = addr;
+                        state.last_reg_time = Instant::now();
+                        register_pk_response::Result::OK
+                    };
                     let mut msg_out = RendezvousMessage::new();
                     msg_out.set_register_pk_response(RegisterPkResponse {
-                        result: register_pk_response::Result::OK.into(),
+                        result: result.into(),
                         ..Default::default()
                     });
                     socket.send(&msg_out, addr).await?
@@ -509,6 +513,9 @@ impl RendezvousServer {
                         socket.send(&msg_out, addr).await?;
                     }
                 }
+                Some(rendezvous_message::Union::IceCandidate(ice)) => {
+                    allow_err!(self.handle_ice_candidate(ice, addr).await);
+                }
                 _ => {}
             }
         }
@@ -519,41 +526,37 @@ impl RendezvousServer {
     async fn handle_tcp(
         &mut self,
         bytes: &[u8],
-        sink: &mut Option<Sink>,
+        sink: &mut Option<SharedSink>,
         addr: SocketAddr,
         key: &str,
         ws: bool,
     ) -> bool {
-        let mut taken_sink = None;
         let mut ret = false;
         if let Ok(msg_in) = RendezvousMessage::parse_from_bytes(bytes) {
             let is_reg = match &msg_in.union {
                 Some(rendezvous_message::Union::RegisterPk(_)) | Some(rendezvous_message::Union::RegisterPeer(_)) => true,
                 _ => false,
             };
-            if is_reg && sink.is_some() {
-                if let Some(s) = sink.take() {
-                    self.tcp_punch.lock().await.insert(try_into_v4(addr), s);
+            if is_reg {
+                if let Some(active_sink) = sink.as_ref() {
+                    self.tcp_punch.lock().await.insert(try_into_v4(addr), active_sink.clone());
                 }
             }
-            if sink.is_none() {
-                taken_sink = self.tcp_punch.lock().await.remove(&try_into_v4(addr));
-            }
-            let current_sink = if sink.is_some() { sink } else { &mut taken_sink };
+            let current_sink = sink;
 
             match msg_in.union {
                 Some(rendezvous_message::Union::PunchHoleRequest(ph)) => {
                     // there maybe several attempt, so sink can be none
-                    if let Some(s) = current_sink.take() {
-                        self.tcp_punch.lock().await.insert(try_into_v4(addr), s);
+                    if let Some(active_sink) = current_sink.as_ref() {
+                        self.tcp_punch.lock().await.insert(try_into_v4(addr), active_sink.clone());
                     }
                     allow_err!(self.handle_tcp_punch_hole_request(addr, ph, key, ws).await);
                     ret = true;
                 }
                 Some(rendezvous_message::Union::RequestRelay(mut rf)) => {
                     // there maybe several attempt, so sink can be none
-                    if let Some(s) = current_sink.take() {
-                        self.tcp_punch.lock().await.insert(try_into_v4(addr), s);
+                    if let Some(active_sink) = current_sink.as_ref() {
+                        self.tcp_punch.lock().await.insert(try_into_v4(addr), active_sink.clone());
                     }
                     if let Some(peer) = self.pm.get_in_memory(&rf.id).await {
                         let mut msg_out = RendezvousMessage::new();
@@ -709,7 +712,11 @@ impl RendezvousServer {
                                         }
                                     }
                                     if changed {
-                                        self.pm.update_pk(id, peer, addr, rk.uuid, rk.pk, ip).await;
+                                        res = self.pm.update_pk(id, peer, addr, rk.uuid, rk.pk, ip).await;
+                                    } else {
+                                        let mut state = peer.write().await;
+                                        state.socket_addr = addr;
+                                        state.last_reg_time = Instant::now();
                                     }
                                 }
                             }
@@ -760,11 +767,12 @@ impl RendezvousServer {
                     }
                     ret = true;
                 }
+                Some(rendezvous_message::Union::IceCandidate(ice)) => {
+                    allow_err!(self.handle_ice_candidate(ice, addr).await);
+                    ret = true;
+                }
                 _ => {}
             }
-        }
-        if let Some(s) = taken_sink {
-            self.tcp_punch.lock().await.insert(try_into_v4(addr), s);
         }
         ret
     }
@@ -962,14 +970,15 @@ impl RendezvousServer {
             let peer_is_lan = self.is_lan(peer_addr);
             let is_lan = self.is_lan(addr);
             let mut relay_server = self.get_relay_server(addr.ip(), peer_addr.ip());
-            if ALWAYS_USE_RELAY.load(Ordering::SeqCst) || (peer_is_lan ^ is_lan) {
+            let force_relay = ph.force_relay || ALWAYS_USE_RELAY.load(Ordering::SeqCst);
+            if force_relay || (peer_is_lan ^ is_lan) {
                 if peer_is_lan {
                     // https://github.com/rustdesk/rustdesk-server/issues/24
                     relay_server = self.inner.local_ip.clone()
                 }
                 ph.nat_type = NatType::SYMMETRIC.into(); // will force relay
             }
-            let same_intranet: bool = !ws
+            let same_intranet: bool = !ws && !force_relay
                 && (peer_is_lan && is_lan || {
                     match (peer_addr, addr) {
                         (SocketAddr::V4(a), SocketAddr::V4(b)) => a.ip() == b.ip(),
@@ -1003,7 +1012,7 @@ impl RendezvousServer {
                     nat_type: ph.nat_type,
                     relay_server,
                     udp_port: ph.udp_port,
-                    force_relay: ph.force_relay,
+                    force_relay,
                     upnp_port: ph.upnp_port,
                     socket_addr_v6: ph.socket_addr_v6,
                     ..Default::default()
@@ -1050,29 +1059,58 @@ impl RendezvousServer {
     }
 
     #[inline]
-    async fn send_to_tcp(&mut self, msg: RendezvousMessage, addr: SocketAddr) {
-        let tcp_punch = self.tcp_punch.clone();
-        let mut tcp = tcp_punch.lock().await.remove(&try_into_v4(addr));
-        tokio::spawn(async move {
-            Self::send_to_sink(&mut tcp, msg).await;
-            if let Some(sink) = tcp {
-                tcp_punch.lock().await.insert(try_into_v4(addr), sink);
+    async fn handle_ice_candidate(
+        &mut self,
+        mut ice: IceCandidate,
+        addr: SocketAddr,
+    ) -> ResultType<()> {
+        if !ice.id.is_empty() {
+            if let Some(peer) = self.pm.get(&ice.id).await {
+                let peer_addr = peer.read().await.socket_addr;
+                ice.socket_addr = AddrMangle::encode(addr).into();
+                let mut msg_out = RendezvousMessage::new();
+                msg_out.set_ice_candidate(ice);
+                self.tx.send(Data::Msg(msg_out.into(), peer_addr))?;
             }
+        } else if !ice.socket_addr.is_empty() {
+            let addr_a = AddrMangle::decode(&ice.socket_addr);
+            ice.socket_addr = Default::default();
+            let mut msg_out = RendezvousMessage::new();
+            msg_out.set_ice_candidate(ice);
+            self.send_to_tcp(msg_out, addr_a).await;
+        }
+        Ok(())
+    }
+
+    async fn send_to_tcp(&mut self, msg: RendezvousMessage, addr: SocketAddr) {
+        let mut sink = self.tcp_punch.lock().await.get(&try_into_v4(addr)).cloned();
+        tokio::spawn(async move {
+            Self::send_to_sink(&mut sink, msg).await;
         });
     }
 
-    #[inline]
-    async fn send_to_sink(sink: &mut Option<Sink>, msg: RendezvousMessage) {
-        if let Some(sink) = sink.as_mut() {
-            if let Ok(bytes) = msg.write_to_bytes() {
-                match sink {
-                    Sink::TcpStream(s) => {
-                        allow_err!(s.send(Bytes::from(bytes)).await);
-                    }
-                    Sink::Ws(ws) => {
-                        allow_err!(ws.send(tungstenite::Message::Binary(bytes)).await);
-                    }
-                }
+    async fn send_to_sink(sink: &mut Option<SharedSink>, msg: RendezvousMessage) {
+        let Some(active) = sink.as_ref() else {
+            return;
+        };
+        let result = timeout(SIGNAL_SEND_TIMEOUT, async {
+            let bytes = msg.write_to_bytes()?;
+            let mut writer = active.lock().await;
+            match &mut *writer {
+                Sink::TcpStream(writer) => writer.send(Bytes::from(bytes)).await?,
+                Sink::Ws(writer) => writer.send(tungstenite::Message::Binary(bytes)).await?,
+            }
+            Ok::<(), hbb_common::anyhow::Error>(())
+        }).await;
+        match result {
+            Ok(Ok(())) => {}
+            Ok(Err(error)) => {
+                log::debug!("send_to_sink error: {}", error);
+                *sink = None;
+            }
+            Err(_) => {
+                log::debug!("send_to_sink timeout");
+                *sink = None;
             }
         }
     }
@@ -1083,11 +1121,8 @@ impl RendezvousServer {
         msg: RendezvousMessage,
         addr: SocketAddr,
     ) -> ResultType<()> {
-        let mut sink = self.tcp_punch.lock().await.remove(&try_into_v4(addr));
+        let mut sink = self.tcp_punch.lock().await.get(&try_into_v4(addr)).cloned();
         Self::send_to_sink(&mut sink, msg).await;
-        if let Some(s) = sink {
-            self.tcp_punch.lock().await.insert(try_into_v4(addr), s);
-        }
         Ok(())
     }
 
@@ -1404,8 +1439,6 @@ impl RendezvousServer {
             allow_err!(rs.handle_listener_inner(stream, addr, &key, ws).await);
         });
     }
-
-    #[inline]
     async fn handle_listener_inner(
         &mut self,
         stream: TcpStream,
@@ -1430,131 +1463,74 @@ impl RendezvousServer {
                 }
                 Ok(response)
             };
-            let ws_stream = tokio_tungstenite::accept_hdr_async(stream, callback).await?;
-            let (a, mut b) = ws_stream.split();
-            sink = Some(Sink::Ws(a));
-            let mut heartbeat_timer = tokio::time::interval(tokio::time::Duration::from_secs(15));
+            let ws_stream = timeout(SIGNAL_SEND_TIMEOUT, tokio_tungstenite::accept_hdr_async(stream, callback)).await??;
+            let (writer, mut reader) = ws_stream.split();
+            sink = Some(Arc::new(Mutex::new(Sink::Ws(writer))));
+            let mut heartbeat_timer = interval(Duration::from_secs(15));
             heartbeat_timer.tick().await;
+            let mut last_received = tokio::time::Instant::now();
             loop {
                 tokio::select! {
                     _ = heartbeat_timer.tick() => {
-                        let mut got_from_tcp_punch = false;
-                        let mut active_sink = sink.take();
-                        if active_sink.is_none() {
-                            active_sink = self.tcp_punch.lock().await.remove(&try_into_v4(addr));
-                            if active_sink.is_some() {
-                                got_from_tcp_punch = true;
-                            }
+                        if last_received.elapsed() >= SIGNAL_IDLE_TIMEOUT {
+                            break;
                         }
-                        if let Some(mut s) = active_sink {
-                            let mut success = true;
-                            match &mut s {
-                                Sink::Ws(ws_sink) => {
-                                    if ws_sink.send(tungstenite::Message::Binary(vec![])).await.is_err() {
-                                        success = false;
-                                    }
-                                }
-                                Sink::TcpStream(tcp_sink) => {
-                                    if tcp_sink.send(Bytes::new()).await.is_err() {
-                                        success = false;
-                                    }
-                                }
-                            }
-                            if success {
-                                if got_from_tcp_punch {
-                                    self.tcp_punch.lock().await.insert(try_into_v4(addr), s);
-                                } else {
-                                    sink = Some(s);
-                                }
-                            } else {
-                                break;
-                            }
-                        } else {
+                        Self::send_to_sink(&mut sink, RendezvousMessage::new()).await;
+                        if sink.is_none() {
                             break;
                         }
                     }
-                    res = timeout(60_000, b.next()) => {
-                        match res {
-                            Ok(Some(Ok(msg))) => {
-                                if let tungstenite::Message::Binary(bytes) = msg {
-                                    if bytes.is_empty() {
-                                        continue;
-                                    }
-                                    if !self.handle_tcp(&bytes, &mut sink, addr, key, ws).await {
+                    message = reader.next() => {
+                        match message {
+                            Some(Ok(tungstenite::Message::Close(_))) | None | Some(Err(_)) => break,
+                            Some(Ok(message)) => {
+                                last_received = tokio::time::Instant::now();
+                                if let tungstenite::Message::Binary(bytes) = message {
+                                    if !bytes.is_empty() && !self.handle_tcp(&bytes, &mut sink, addr, key, ws).await {
                                         break;
                                     }
                                 }
-                            }
-                            _ => {
-                                break;
                             }
                         }
                     }
                 }
             }
         } else {
-            let (a, mut b) = Framed::new(stream, BytesCodec::new()).split();
-            sink = Some(Sink::TcpStream(a));
-            let mut heartbeat_timer = tokio::time::interval(tokio::time::Duration::from_secs(15));
+            let (writer, mut reader) = Framed::new(stream, BytesCodec::new()).split();
+            sink = Some(Arc::new(Mutex::new(Sink::TcpStream(writer))));
+            let mut heartbeat_timer = interval(Duration::from_secs(15));
             heartbeat_timer.tick().await;
+            let mut last_received = tokio::time::Instant::now();
             loop {
                 tokio::select! {
                     _ = heartbeat_timer.tick() => {
-                        let mut got_from_tcp_punch = false;
-                        let mut active_sink = sink.take();
-                        if active_sink.is_none() {
-                            active_sink = self.tcp_punch.lock().await.remove(&try_into_v4(addr));
-                            if active_sink.is_some() {
-                                got_from_tcp_punch = true;
-                            }
+                        if last_received.elapsed() >= SIGNAL_IDLE_TIMEOUT {
+                            break;
                         }
-                        if let Some(mut s) = active_sink {
-                            let mut success = true;
-                            match &mut s {
-                                Sink::Ws(ws_sink) => {
-                                    if ws_sink.send(tungstenite::Message::Binary(vec![])).await.is_err() {
-                                        success = false;
-                                    }
-                                }
-                                Sink::TcpStream(tcp_sink) => {
-                                    if tcp_sink.send(Bytes::new()).await.is_err() {
-                                        success = false;
-                                    }
-                                }
-                            }
-                            if success {
-                                if got_from_tcp_punch {
-                                    self.tcp_punch.lock().await.insert(try_into_v4(addr), s);
-                                } else {
-                                    sink = Some(s);
-                                }
-                            } else {
-                                break;
-                            }
-                        } else {
+                        Self::send_to_sink(&mut sink, RendezvousMessage::new()).await;
+                        if sink.is_none() {
                             break;
                         }
                     }
-                    res = timeout(60_000, b.next()) => {
-                        match res {
-                            Ok(Some(Ok(bytes))) => {
-                                if bytes.is_empty() {
-                                    continue;
-                                }
-                                if !self.handle_tcp(&bytes, &mut sink, addr, key, ws).await {
+                    message = reader.next() => {
+                        match message {
+                            Some(Ok(bytes)) => {
+                                last_received = tokio::time::Instant::now();
+                                if !bytes.is_empty() && !self.handle_tcp(&bytes, &mut sink, addr, key, ws).await {
                                     break;
                                 }
                             }
-                            _ => {
-                                break;
-                            }
+                            _ => break,
                         }
                     }
                 }
             }
         }
-        if sink.is_none() {
-            self.tcp_punch.lock().await.remove(&try_into_v4(addr));
+        let mut routes = self.tcp_punch.lock().await;
+        if routes.get(&try_into_v4(addr)).is_some_and(|active| {
+            sink.as_ref().is_none_or(|own| Arc::ptr_eq(active, own))
+        }) {
+            routes.remove(&try_into_v4(addr));
         }
         log::debug!("Tcp connection from {:?} closed", addr);
         Ok(())

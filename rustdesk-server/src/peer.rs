@@ -100,35 +100,31 @@ impl PeerMap {
         ip: String,
     ) -> register_pk_response::Result {
         log::info!("update_pk {} {:?} {:?} {:?}", id, addr, uuid, pk);
-        let (info_str, guid) = {
-            let mut w = peer.write().await;
-            w.socket_addr = addr;
-            w.uuid = uuid.clone();
-            w.pk = pk.clone();
-            w.last_reg_time = Instant::now();
-            w.info.ip = ip;
-            (
-                serde_json::to_string(&w.info).unwrap_or_default(),
-                w.guid.clone(),
-            )
-        };
-        if guid.is_empty() {
+        let mut state = peer.write().await;
+        let info = PeerInfo { ip };
+        let info_str = serde_json::to_string(&info).unwrap_or_default();
+        if state.guid.is_empty() {
             match self.db.insert_peer(&id, &uuid, &pk, &info_str).await {
                 Err(err) => {
                     log::error!("db.insert_peer failed: {}", err);
                     return register_pk_response::Result::SERVER_ERROR;
                 }
                 Ok(guid) => {
-                    peer.write().await.guid = guid;
+                    state.guid = guid;
                 }
             }
         } else {
-            if let Err(err) = self.db.update_pk(&guid, &id, &pk, &info_str).await {
+            if let Err(err) = self.db.update_pk(&state.guid, &id, &pk, &info_str).await {
                 log::error!("db.update_pk failed: {}", err);
                 return register_pk_response::Result::SERVER_ERROR;
             }
             log::info!("pk updated instead of insert");
         }
+        state.socket_addr = addr;
+        state.uuid = uuid;
+        state.pk = pk;
+        state.last_reg_time = Instant::now();
+        state.info = info;
         register_pk_response::Result::OK
     }
 
@@ -148,8 +144,8 @@ impl PeerMap {
                 ..Default::default()
             };
             let peer = Arc::new(RwLock::new(peer));
-            self.map.write().await.insert(id.to_owned(), peer.clone());
-            return Some(peer);
+            let mut peers = self.map.write().await;
+            return Some(peers.entry(id.to_owned()).or_insert(peer).clone());
         }
         None
     }

@@ -56,3 +56,62 @@ fn client_1_4_7_punch_fields_round_trip() {
     assert_eq!(request.upnp_port, 32117);
     assert_eq!(request.socket_addr_v6.as_ref(), &[7, 8, 9]);
 }
+
+#[test]
+fn client_1_5_0_webrtc_ice_fields_round_trip() {
+    use hbb_common::rendezvous_proto::{IceCandidate, PunchHole, PunchHoleResponse};
+
+    // Test PunchHoleRequest WebRTC offer
+    let mut ph_req = RendezvousMessage::new();
+    ph_req.set_punch_hole_request(PunchHoleRequest {
+        id: "target_peer_123".to_owned(),
+        webrtc_sdp_offer: "v=0\r\no=- 12345 2 IN IP4 127.0.0.1...".to_owned(),
+        ..Default::default()
+    });
+    let decoded = RendezvousMessage::parse_from_bytes(&ph_req.write_to_bytes().unwrap()).unwrap();
+    let Some(rendezvous_message::Union::PunchHoleRequest(req)) = decoded.union else {
+        panic!("expected PunchHoleRequest");
+    };
+    assert_eq!(req.webrtc_sdp_offer, "v=0\r\no=- 12345 2 IN IP4 127.0.0.1...");
+
+    // Test PunchHole WebRTC offer forward
+    let mut ph = RendezvousMessage::new();
+    ph.set_punch_hole(PunchHole {
+        webrtc_sdp_offer: "v=0\r\no=- 12345 2 IN IP4 127.0.0.1...".to_owned(),
+        ..Default::default()
+    });
+    let decoded = RendezvousMessage::parse_from_bytes(&ph.write_to_bytes().unwrap()).unwrap();
+    let Some(rendezvous_message::Union::PunchHole(punch)) = decoded.union else {
+        panic!("expected PunchHole");
+    };
+    assert_eq!(punch.webrtc_sdp_offer, "v=0\r\no=- 12345 2 IN IP4 127.0.0.1...");
+
+    // Test PunchHoleResponse WebRTC answer
+    let mut ph_resp = RendezvousMessage::new();
+    ph_resp.set_punch_hole_response(PunchHoleResponse {
+        webrtc_sdp_answer: "v=0\r\no=- 67890 2 IN IP4 127.0.0.1...".to_owned(),
+        ..Default::default()
+    });
+    let decoded = RendezvousMessage::parse_from_bytes(&ph_resp.write_to_bytes().unwrap()).unwrap();
+    let Some(rendezvous_message::Union::PunchHoleResponse(resp)) = decoded.union else {
+        panic!("expected PunchHoleResponse");
+    };
+    assert_eq!(resp.webrtc_sdp_answer, "v=0\r\no=- 67890 2 IN IP4 127.0.0.1...");
+
+    // Test IceCandidate Trickling message
+    let mut ice_msg = RendezvousMessage::new();
+    ice_msg.set_ice_candidate(IceCandidate {
+        id: "peer_b".to_owned(),
+        session_key: "session_key_abc".to_owned(),
+        candidate: "candidate:1 1 UDP 2130706431 192.168.1.100 50000 typ host".to_owned(),
+        ..Default::default()
+    });
+    let decoded = RendezvousMessage::parse_from_bytes(&ice_msg.write_to_bytes().unwrap()).unwrap();
+    let Some(rendezvous_message::Union::IceCandidate(ice)) = decoded.union else {
+        panic!("expected IceCandidate");
+    };
+    assert_eq!(ice.id, "peer_b");
+    assert_eq!(ice.session_key, "session_key_abc");
+    assert_eq!(ice.candidate, "candidate:1 1 UDP 2130706431 192.168.1.100 50000 typ host");
+}
+
