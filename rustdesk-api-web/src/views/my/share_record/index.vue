@@ -39,29 +39,32 @@
 </template>
 
 <script setup>
-import { useRepositories } from '@/views/share_record';
-import { onActivated, onMounted, watch } from 'vue';
+  import { onActivated, onMounted, watch } from 'vue'
+  import { T } from '@/utils/i18n'
+  import { useRepositories } from '@/views/share_record'
 
-const {
-  listRes,
-  listQuery,
-  getList,
-  handlerQuery,
-  del,
-  multipleSelection,
-  toBatchDelete,
-  expired,
-} = useRepositories('my');
+  const {
+    listRes,
+    listQuery,
+    getList,
+    handlerQuery,
+    del,
+    multipleSelection,
+    toBatchDelete,
+    expired,
+  } = useRepositories('my')
 
-onMounted(getList);
-onActivated(getList);
+  onMounted(getList)
+  onActivated(getList)
 
-watch(() => listQuery.page, getList);
+  watch(() => listQuery.page, getList)
 
-watch(() => listQuery.page_size, handlerQuery);
-const handleSelectionChange = (val) => {
-  multipleSelection.value = val;
-};
+  watch(() => listQuery.page_size, handlerQuery)
+  const handleSelectionChange = (val) => {
+    multipleSelection.value = val
+  }
+
+
 </script>
 
 <style scoped lang="scss">

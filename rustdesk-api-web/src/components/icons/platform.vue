@@ -13,18 +13,18 @@
 </template>
 
 <script setup>
-const props = defineProps({
-  name: {
-    type: String,
-    required: true,
-    default: '',
-    values: ['windows', 'android', 'mac', 'linux'],
-  },
-  color: {
-    type: String,
-    default: '',
-  },
-});
+  const props = defineProps({
+    name: {
+      type: String,
+      required: true,
+      default: '',
+      values: ['windows', 'android', 'mac', 'linux'],
+    },
+    color: {
+      type: String,
+      default: '',
+    },
+  })
 </script>
 
 <style scoped lang="scss">

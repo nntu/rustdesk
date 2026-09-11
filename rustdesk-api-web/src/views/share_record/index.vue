@@ -54,33 +54,38 @@
 </template>
 
 <script setup>
-import { loadAllUsers } from '@/global';
-import { useRepositories } from '@/views/share_record/index';
-import { onActivated, onMounted, watch } from 'vue';
+  import { onActivated, onMounted, ref, watch, reactive } from 'vue'
+  import { loadAllUsers } from '@/global'
+  import { T } from '@/utils/i18n'
+  import { remove, list, batchDelete } from '@/api/share_record'
+  import { ElMessage, ElMessageBox } from 'element-plus'
+  import { useRepositories } from '@/views/share_record/index'
 
-const { allUsers, getAllUsers } = loadAllUsers();
-getAllUsers();
+  const { allUsers, getAllUsers } = loadAllUsers()
+  getAllUsers()
 
-const {
-  listRes,
-  listQuery,
-  getList,
-  handlerQuery,
-  del,
-  multipleSelection,
-  toBatchDelete,
-  expired,
-} = useRepositories('admin');
+  const {
+    listRes,
+    listQuery,
+    getList,
+    handlerQuery,
+    del,
+    multipleSelection,
+    toBatchDelete,
+    expired,
+  } = useRepositories('admin')
 
-onMounted(getList);
-onActivated(getList);
+  onMounted(getList)
+  onActivated(getList)
 
-watch(() => listQuery.page, getList);
+  watch(() => listQuery.page, getList)
 
-watch(() => listQuery.page_size, handlerQuery);
-const handleSelectionChange = (val) => {
-  multipleSelection.value = val;
-};
+  watch(() => listQuery.page_size, handlerQuery)
+  const handleSelectionChange = (val) => {
+    multipleSelection.value = val
+  }
+
+
 </script>
 
 <style scoped lang="scss">

@@ -58,137 +58,140 @@
   </div>
 </template>
 <script>
-import { useLocal } from '@/components/form/upload/local';
-import { useOss } from '@/components/form/upload/oss';
-import { ArrowLeft, ArrowRight, Check, Delete, Plus, ZoomIn } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
-import { computed, defineComponent, reactive, toRefs, unref } from 'vue';
+  import { defineComponent, ref, computed, reactive, unref, readonly, toRefs } from 'vue'
+  import { Plus, ZoomIn, Delete, ArrowLeft, ArrowRight, Check } from '@element-plus/icons-vue'
+  import { useOss } from '@/components/form/upload/oss'
+  import { ElMessage } from 'element-plus'
+  import { useLocal } from '@/components/form/upload/local'
 
-export default defineComponent({
-  name: 'imagesUpload',
-  props: {
-    drag: {
-      type: Boolean,
-      default: false,
+  export default defineComponent({
+    name: 'imagesUpload',
+    props: {
+      drag: {
+        type: Boolean,
+        default: false,
+      },
+      limit: {
+        type: Number,
+        default: 0,
+      },
+      beforeUpload: {
+        type: Function,
+        default: function () {
+          return true
+        },
+      },
+      host: {
+        type: String,
+        default: import.meta.env.VITE_BASE_API + '/file/upload',
+      },
+      modelValue: {
+        type: Array,
+        default: function () {
+          return []
+        },
+      },
+      type: {
+        type: String,
+        default: 'local', //local oss
+      },
+      multiple: {
+        type: Boolean,
+        default: false,
+      },
+      width: {
+        type: String,
+        default: '148px',
+      },
     },
-    limit: {
-      type: Number,
-      default: 0,
-    },
-    beforeUpload: {
-      type: Function,
-      default: () => true,
-    },
-    host: {
-      type: String,
-      default: import.meta.env.VITE_BASE_API + '/file/upload',
-    },
-    modelValue: {
-      type: Array,
-      default: () => [],
-    },
-    type: {
-      type: String,
-      default: 'local', //local oss
-    },
-    multiple: {
-      type: Boolean,
-      default: false,
-    },
-    width: {
-      type: String,
-      default: '148px',
-    },
-  },
-  components: { Plus, ZoomIn, Delete, ArrowLeft, ArrowRight, Check },
-  setup(props, context) {
-    const fileList = computed(() =>
-      props.modelValue.map((url) => {
-        return { url, status: 'success' };
-      }),
-    );
+    components: { Plus, ZoomIn, Delete, ArrowLeft, ArrowRight, Check },
+    setup (props, context) {
 
-    let fileUpload = reactive({
-      fileUploadHost: '',
-      fileUploadData: {},
-      beforeFileUpload: null,
-      headers: {},
-    });
+      let fileList = computed(() => props.modelValue.map(url => { return { url, status: 'success' } }))
 
-    if (props.type === 'oss') {
-      fileUpload = useOss(props.beforeUpload, props.multiple);
-    } else {
-      fileUpload = useLocal(props.beforeUpload, props.host);
-    }
+      let fileUpload = reactive({
+        fileUploadHost: '',
+        fileUploadData: {},
+        beforeFileUpload: null,
+        headers: {},
+      })
 
-    function leftImage(file) {
-      const fList = unref(fileList);
-      const index = fList.findIndex((f) => f.url === file.url);
-      if (index === 0 || index === -1) {
-        return;
+      if (props.type === 'oss') {
+        fileUpload = useOss(props.beforeUpload, props.multiple)
+      } else {
+        fileUpload = useLocal(props.beforeUpload, props.host)
       }
-      fList[index] = fList.splice(index - 1, 1, fList[index])[0];
-      updateValue(fList);
-    }
 
-    function rightImage(file) {
-      const fList = unref(fileList);
-      const index = fList.findIndex((f) => f.url === file.url);
-      if (index === fList.length - 1 || index === -1) {
-        return;
+      function leftImage (file) {
+        let fList = unref(fileList)
+        const index = fList.findIndex(f => f.url === file.url)
+        if (index === 0 || index === -1) {
+          return
+        }
+        fList[index] = fList.splice(index - 1, 1, fList[index])[0]
+        updateValue(fList)
       }
-      fList[index] = fList.splice(index + 1, 1, fList[index])[0];
-      updateValue(fList);
-    }
 
-    function removeImage(file) {
-      const fList = unref(fileList);
-      const index = fList.findIndex((f) => f.url === file.url);
-      fList.splice(index, 1);
-      updateValue(fList);
-    }
-
-    function updateValue(_fileList) {
-      const fList = unref(_fileList);
-      context.emit(
-        'update:modelValue',
-        fList.filter((f) => f.status === 'success').map((file) => file.url),
-      );
-    }
-
-    function fileRemove(file, _fileList) {
-      updateValue(_fileList);
-    }
-
-    function onError() {}
-
-    function fileUploadSuccess(response, file, _fileList) {
-      file.url = response?.data?.url || file.url;
-      if (_fileList.every((f) => f.status === 'success')) {
-        updateValue(_fileList);
+      function rightImage (file) {
+        let fList = unref(fileList)
+        const index = fList.findIndex(f => f.url === file.url)
+        if (index === fList.length - 1 || index === -1) {
+          return
+        }
+        fList[index] = fList.splice(index + 1, 1, fList[index])[0]
+        updateValue(fList)
       }
-    }
 
-    function onExceed() {
-      ElMessage.error('Quantity limit exceeded');
-    }
+      function removeImage (file) {
+        let fList = unref(fileList)
+        const index = fList.findIndex(f => f.url === file.url)
+        fList.splice(index, 1)
+        updateValue(fList)
+      }
 
-    return {
-      fileList,
+      function updateValue (_fileList) {
+        let fList = unref(_fileList)
+        context.emit(
+          'update:modelValue',
+          fList.filter(f => f.status === 'success').map(file => file.url),
+        )
+      }
 
-      ...toRefs(fileUpload),
+      function fileRemove (file, _fileList) {
+        updateValue(_fileList)
+      }
 
-      onExceed,
-      fileRemove,
-      onError,
-      fileUploadSuccess,
+      function onError () {
 
-      leftImage,
-      rightImage,
-      removeImage,
-    };
-  },
-});
+      }
+
+      function fileUploadSuccess (response, file, _fileList) {
+        file.url = response?.data?.url || file.url
+        if (_fileList.every(f => f.status === 'success')) {
+          updateValue(_fileList)
+        }
+      }
+
+      function onExceed () {
+        ElMessage.error('Quantity limit exceeded')
+      }
+
+      return {
+        fileList,
+
+        ...toRefs(fileUpload),
+
+        onExceed,
+        fileRemove,
+        onError,
+        fileUploadSuccess,
+
+        leftImage,
+        rightImage,
+        removeImage,
+      }
+    },
+  })
 </script>
 
 <style scoped lang="scss">

@@ -33,111 +33,117 @@
   </div>
 </template>
 <script>
-import { useLocal } from '@/components/form/upload/local';
-import { useOss } from '@/components/form/upload/oss';
-import { ArrowLeft, ArrowRight, Check, Delete, Plus, ZoomIn } from '@element-plus/icons-vue';
-import { computed, defineComponent, reactive, ref, toRefs, unref } from 'vue';
+  import { defineComponent, ref, computed, reactive, unref, readonly, toRefs } from 'vue'
+  import { Plus, ZoomIn, Delete, ArrowLeft, ArrowRight, Check } from '@element-plus/icons-vue'
+  import { useOss } from '@/components/form/upload/oss'
+  import { ElMessage } from 'element-plus'
+  import { useLocal } from '@/components/form/upload/local'
 
-export default defineComponent({
-  name: 'imageUpload',
-  props: {
-    limit: {
-      type: Number,
-      default: 0,
+  export default defineComponent({
+    name: 'imageUpload',
+    props: {
+      limit: {
+        type: Number,
+        default: 0,
+      },
+      beforeUpload: {
+        type: Function,
+        default: function () {
+          return true
+        },
+      },
+      host: {
+        type: String,
+        default: import.meta.env.VITE_BASE_API + '/file/upload',
+      },
+      modelValue: {
+        type: String,
+        default: '',
+      },
+      type: {
+        type: String,
+        default: 'local', //local oss
+      },
+      width: {
+        type: String,
+        default: '148px',
+      },
     },
-    beforeUpload: {
-      type: Function,
-      default: () => true,
-    },
-    host: {
-      type: String,
-      default: import.meta.env.VITE_BASE_API + '/file/upload',
-    },
-    modelValue: {
-      type: String,
-      default: '',
-    },
-    type: {
-      type: String,
-      default: 'local', //local oss
-    },
-    width: {
-      type: String,
-      default: '148px',
-    },
-  },
-  components: { Plus, ZoomIn, Delete, ArrowLeft, ArrowRight, Check },
-  setup(props, context) {
-    const showPreview = ref(false);
-    const showImage = ref('');
+    components: { Plus, ZoomIn, Delete, ArrowLeft, ArrowRight, Check },
+    setup (props, context) {
+      const showPreview = ref(false)
+      const showImage = ref('')
 
-    const fileList = computed(() =>
-      props.modelValue ? [{ url: props.modelValue, status: 'success' }] : [],
-    );
+      let fileList = computed(() => props.modelValue ? [{ url: props.modelValue, status: 'success' }] : [])
 
-    let fileUpload = reactive({
-      fileUploadHost: '',
-      fileUploadData: {},
-      beforeFileUpload: null,
-      headers: {},
-    });
+      let fileUpload = reactive({
+        fileUploadHost: '',
+        fileUploadData: {},
+        beforeFileUpload: null,
+        headers: {},
+      })
 
-    if (props.type === 'oss') {
-      fileUpload = useOss(props.beforeUpload, props.multiple);
-    } else {
-      fileUpload = useLocal(props.beforeUpload, props.host);
-    }
-
-    function removeImage(file) {
-      const fList = unref(fileList);
-      const index = fList.findIndex((f) => f.url === file.url);
-      fList.splice(index, 1);
-      updateValue(fList);
-    }
-
-    function updateValue(_fileList) {
-      const fList = unref(_fileList);
-      context.emit('update:modelValue', fList.length ? fList[0].url : '');
-    }
-
-    function fileRemove(file, _fileList) {
-      updateValue(_fileList);
-    }
-
-    function onError() {}
-
-    function fileUploadSuccess(response, file, _fileList) {
-      file.url = response?.data?.url || file.url;
-      if (_fileList.length > 1) {
-        _fileList.splice(0, 1);
+      if (props.type === 'oss') {
+        fileUpload = useOss(props.beforeUpload, props.multiple)
+      } else {
+        fileUpload = useLocal(props.beforeUpload, props.host)
       }
-      if (_fileList.every((f) => f.status === 'success')) {
-        updateValue(_fileList);
+
+      function removeImage (file) {
+        let fList = unref(fileList)
+        const index = fList.findIndex(f => f.url === file.url)
+        fList.splice(index, 1)
+        updateValue(fList)
       }
-    }
 
-    function onPreview(file) {
-      showImage.value = file.url;
-      showPreview.value = true;
-    }
+      function updateValue (_fileList) {
+        let fList = unref(_fileList)
+        context.emit(
+          'update:modelValue',
+          fList.length ? fList[0].url : '',
+        )
+      }
 
-    return {
-      fileList,
+      function fileRemove (file, _fileList) {
+        updateValue(_fileList)
+      }
 
-      ...toRefs(fileUpload),
+      function onError () {
 
-      fileRemove,
-      onError,
-      fileUploadSuccess,
+      }
 
-      onPreview,
-      removeImage,
+      function fileUploadSuccess (response, file, _fileList) {
+        file.url = response?.data?.url || file.url
+        if (_fileList.length > 1) {
+          _fileList.splice(0, 1)
+        }
+        if (_fileList.every(f => f.status === 'success')) {
+          updateValue(_fileList)
+        }
+      }
 
-      showPreview,
-      showImage,
-    };
-  },
-});
+      function onPreview (file) {
+        showImage.value = file.url
+        showPreview.value = true
+      }
+
+      return {
+        fileList,
+
+        ...toRefs(fileUpload),
+
+        fileRemove,
+        onError,
+        fileUploadSuccess,
+
+        onPreview,
+        removeImage,
+
+        showPreview,
+        showImage,
+      }
+    },
+  })
 </script>
 
 <style scoped lang="scss">

@@ -50,129 +50,130 @@
 </template>
 
 <script setup>
-import { captcha, loginOptions } from '@/api/login';
-import { useUserStore } from '@/store/user';
-import { getCode, removeCode } from '@/utils/auth';
-import { T } from '@/utils/i18n';
-import { ElMessage } from 'element-plus';
-import { onMounted, reactive, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+  import { reactive, onMounted, ref } from 'vue'
+  import { useUserStore } from '@/store/user'
+  import { ElMessage } from 'element-plus'
+  import { T } from '@/utils/i18n'
+  import { useRoute, useRouter } from 'vue-router'
+  import { loginOptions, captcha } from '@/api/login'
+  import { getCode, removeCode } from '@/utils/auth'
 
-const oauthInfo = ref({});
-const userStore = useUserStore();
-const route = useRoute();
-const router = useRouter();
-const options = reactive([]); // Storing OIDC login options
+  const oauthInfo = ref({})
+  const userStore = useUserStore()
+  const route = useRoute()
+  const router = useRouter()
+  const options = reactive([]) // Storing OIDC login options
 
-let platform = window.navigator.platform;
-if (navigator.platform.indexOf('Mac') === 0) {
-  platform = 'mac';
-} else if (navigator.platform.indexOf('Win') === 0) {
-  platform = 'windows';
-} else if (navigator.platform.indexOf('Linux armv') === 0) {
-  platform = 'android';
-} else if (navigator.platform.indexOf('Linux') === 0) {
-  platform = 'linux';
-}
-const userAgent = navigator.userAgent;
-let browser = 'Unknown Browser';
-if (/chrome|crios/i.test(userAgent)) browser = 'Chrome';
-else if (/firefox|fxios/i.test(userAgent)) browser = 'Firefox';
-else if (/safari/i.test(userAgent) && !/chrome/i.test(userAgent)) browser = 'Safari';
-else if (/edg/i.test(userAgent)) browser = 'Edge';
-
-const form = reactive({
-  username: '',
-  password: '',
-  platform: platform,
-  captcha: '',
-  captcha_id: '',
-});
-
-const captchaCode = ref('');
-const redirect = route.query?.redirect;
-const login = async () => {
-  const res = await userStore.login(form).catch((e) => e);
-  if (!res.code) {
-    ElMessage.success(T('LoginSuccess'));
-    router.push({ path: redirect || '/', replace: true });
-    return;
+  let platform = window.navigator.platform
+  if (navigator.platform.indexOf('Mac') === 0) {
+    platform = 'mac'
+  } else if (navigator.platform.indexOf('Win') === 0) {
+    platform = 'windows'
+  } else if (navigator.platform.indexOf('Linux armv') === 0) {
+    platform = 'android'
+  } else if (navigator.platform.indexOf('Linux') === 0) {
+    platform = 'linux'
   }
-  if (res.code === 110) {
-    // need captcha
-    loadCaptcha();
-  }
-};
+  const userAgent = navigator.userAgent
+  let browser = 'Unknown Browser'
+  if (/chrome|crios/i.test(userAgent)) browser = 'Chrome'
+  else if (/firefox|fxios/i.test(userAgent)) browser = 'Firefox'
+  else if (/safari/i.test(userAgent) && !/chrome/i.test(userAgent)) browser = 'Safari'
+  else if (/edg/i.test(userAgent)) browser = 'Edge'
 
-const loadCaptcha = async () => {
-  const captchaRes = await captcha().catch((_) => false);
-  console.log(captchaRes);
-  captchaCode.value = captchaRes.data.captcha;
-  form.captcha_id = captchaRes.data.captcha.id;
-};
+  const form = reactive({
+    username: '',
+    password: '',
+    platform: platform,
+    captcha: '',
+    captcha_id: ''
+  })
 
-const handleOIDCLogin = (provider) => {
-  userStore.oidc(provider, platform, browser);
-};
-
-import githubImage from '@/assets/github.png';
-import googleImage from '@/assets/google.png';
-import oidcImage from '@/assets/oidc.png';
-import defaultImage from '@/assets/oidc.png';
-
-const providerImageMap = {
-  google: googleImage,
-  github: githubImage,
-  oidc: oidcImage,
-  // WebAuth: webauthImage,
-  default: defaultImage,
-};
-
-const getProviderImage = (provider) => {
-  return providerImageMap[provider.toLowerCase()] || providerImageMap.default;
-};
-
-const allowRegister = ref(false);
-const disablePwd = ref(false);
-const loadLoginOptions = async () => {
-  try {
-    const res = await loginOptions().catch((_) => false);
-    if (!res || !res.data) return console.error('No valid response received');
-    res.data.ops.map((option) => options.push({ name: option })); // Create new object array
-    if (res.data.auto_oidc) {
-      // If there is an automatic OIDC login option, call the first one directly
-      handleOIDCLogin(res.data.ops[0]);
+  const captchaCode = ref('')
+  const redirect = route.query?.redirect
+  const login = async () => {
+    const res = await userStore.login(form).catch(e => e)
+    if (!res.code) {
+      ElMessage.success(T('LoginSuccess'))
+      router.push({ path: redirect || '/', replace: true })
+      return
     }
-    disablePwd.value = res.data.disable_pwd;
-    allowRegister.value = res.data.register;
-    if (res.data.need_captcha) {
-      loadCaptcha();
+    if (res.code === 110) {
+      // need captcha
+      loadCaptcha()
     }
-  } catch (error) {
-    console.error('Error loading login options:', error.message);
   }
-};
 
-onMounted(async () => {
-  const code = getCode();
-  if (code) {
-    // If the code exists, perform a query to obtain user information.
-    const res = await userStore.query(code);
-    if (res) {
-      // Delete the code and make sure to clear the code before jumping
-      removeCode();
-      ElMessage.success(T('LoginSuccess'));
-      router.push({ path: redirect || '/', replace: true });
+  const loadCaptcha = async () => {
+    const captchaRes = await captcha().catch(_ => false)
+    console.log(captchaRes)
+    captchaCode.value = captchaRes.data.captcha
+    form.captcha_id = captchaRes.data.captcha.id
+  }
+
+  const handleOIDCLogin = (provider) => {
+    userStore.oidc(provider, platform, browser)
+  }
+
+  import googleImage from '@/assets/google.png'
+  import githubImage from '@/assets/github.png'
+  import oidcImage from '@/assets/oidc.png'
+  import webauthImage from '@/assets/webauth.png'
+  import defaultImage from '@/assets/oidc.png'
+
+  const providerImageMap = {
+    google: googleImage,
+    github: githubImage,
+    oidc: oidcImage,
+    // WebAuth: webauthImage,
+    default: defaultImage,
+  }
+
+  const getProviderImage = (provider) => {
+    return providerImageMap[provider.toLowerCase()] || providerImageMap.default
+  }
+
+  const allowRegister = ref(false)
+  const disablePwd = ref(false)
+  const loadLoginOptions = async () => {
+    try {
+      const res = await loginOptions().catch(_ => false)
+      if (!res || !res.data) return console.error('No valid response received')
+      res.data.ops.map(option => (options.push({ name: option }))) // Create new object array
+      if (res.data.auto_oidc) {
+        // If there is an automatic OIDC login option, call the first one directly
+        handleOIDCLogin(res.data.ops[0])
+      }
+      disablePwd.value = res.data.disable_pwd
+      allowRegister.value = res.data.register
+      if (res.data.need_captcha) {
+        loadCaptcha()
+      }
+    } catch (error) {
+      console.error('Error loading login options:', error.message)
     }
-  } else {
-    // If the code does not exist, the login page will be displayed.
-    loadLoginOptions(); // After the component is mounted, the login option loading function is called
   }
-});
 
-const register = () => {
-  router.push('/register');
-};
+  onMounted(async () => {
+    const code = getCode()
+    if (code) {
+      // If the code exists, perform a query to obtain user information.
+      const res = await userStore.query(code)
+      if (res) {
+        // Delete the code and make sure to clear the code before jumping
+        removeCode()
+        ElMessage.success(T('LoginSuccess'))
+        router.push({ path: redirect || '/', replace: true })
+      }
+    } else {
+      // If the code does not exist, the login page will be displayed.
+      loadLoginOptions() // After the component is mounted, the login option loading function is called
+    }
+  })
+
+  const register = () => {
+    router.push('/register')
+  }
 </script>
 
 <style scoped lang="scss">

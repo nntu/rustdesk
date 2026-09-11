@@ -101,162 +101,156 @@
 </template>
 
 <script setup>
-import { create, list, remove, update } from '@/api/oauth';
-import { useAppStore } from '@/store/app';
-import { handleClipboard } from '@/utils/clipboard';
-import { T } from '@/utils/i18n';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { onActivated, onMounted, reactive, ref, watch } from 'vue';
+  import { onMounted, reactive, watch, ref, onActivated } from 'vue'
+  import { list, create, update, detail, remove } from '@/api/oauth'
+  import { ElMessage, ElMessageBox } from 'element-plus'
+  import { T } from '@/utils/i18n'
+  import { handleClipboard } from '@/utils/clipboard'
+  import { useAppStore } from '@/store/app'
+  import { CopyDocument } from '@element-plus/icons-vue'
 
-const app = useAppStore();
+  const app = useAppStore()
 
-const copyRedirectUrl = (e) => {
-  handleClipboard(defaultRedirect(), e);
-};
-
-const listRes = reactive({
-  list: [],
-  total: 0,
-  loading: false,
-});
-const listQuery = reactive({
-  page: 1,
-  page_size: 10,
-});
-const types = [
-  { value: 'github', label: 'GitHub' },
-  { value: 'google', label: 'Google' },
-  { value: 'linuxdo', label: 'LinuxDo' },
-  { value: 'oidc', label: 'OIDC' },
-];
-const getList = async () => {
-  listRes.loading = true;
-  const res = await list(listQuery).catch((_) => false);
-  listRes.loading = false;
-  if (res) {
-    listRes.list = res.data.list;
-    listRes.total = res.data.total;
-  }
-};
-const handlerQuery = () => {
-  if (listQuery.page === 1) {
-    getList();
-  } else {
-    listQuery.page = 1;
-  }
-};
-
-const del = async (row) => {
-  const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('Delete') }), {
-    confirmButtonText: T('Confirm'),
-    cancelButtonText: T('Cancel'),
-    type: 'warning',
-  }).catch((_) => false);
-  if (!cf) {
-    return false;
+  const copyRedirectUrl = (e) => {
+    handleClipboard(defaultRedirect(), e)
   }
 
-  const res = await remove({ id: row.id }).catch((_) => false);
-  if (res) {
-    ElMessage.success(T('OperationSuccess'));
-    getList();
+  const listRes = reactive({
+    list: [], total: 0, loading: false,
+  })
+  const listQuery = reactive({
+    page: 1,
+    page_size: 10,
+  })
+  const types = [
+    { value: 'github', label: 'GitHub' },
+    { value: 'google', label: 'Google' },
+    { value: 'linuxdo', label: 'LinuxDo' },
+    { value: 'oidc', label: 'OIDC' },
+  ]
+  const getList = async () => {
+    listRes.loading = true
+    const res = await list(listQuery).catch(_ => false)
+    listRes.loading = false
+    if (res) {
+      listRes.list = res.data.list
+      listRes.total = res.data.total
+    }
   }
-};
-onMounted(getList);
-onActivated(getList);
+  const handlerQuery = () => {
+    if (listQuery.page === 1) {
+      getList()
+    } else {
+      listQuery.page = 1
+    }
+  }
 
-watch(() => listQuery.page, getList);
+  const del = async (row) => {
+    const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('Delete') }), {
+      confirmButtonText: T('Confirm'),
+      cancelButtonText: T('Cancel'),
+      type: 'warning',
+    }).catch(_ => false)
+    if (!cf) {
+      return false
+    }
 
-watch(() => listQuery.page_size, handlerQuery);
+    const res = await remove({ id: row.id }).catch(_ => false)
+    if (res) {
+      ElMessage.success(T('OperationSuccess'))
+      getList()
+    }
+  }
+  onMounted(getList)
+  onActivated(getList)
 
-const formVisible = ref(false);
-const formData = reactive({
-  id: 0,
-  op: '',
-  oauth_type: '',
-  issuer: '',
-  client_id: '',
-  client_secret: '',
-  redirect_url: '',
-  scopes: '',
-  auto_register: false,
-  pkce_enable: false,
-  pkce_method: 'S256',
-});
-const rules = {
-  client_id: [
-    { required: true, message: T('ParamRequired', { param: 'client_id' }), trigger: 'blur' },
-  ],
-  client_secret: [
-    { required: true, message: T('ParamRequired', { param: 'client_secret' }), trigger: 'blur' },
-  ],
-  // redirect_url: [{ required: true, message: T('ParamRequired', { param: 'redirect_url' }), trigger: 'blur' }],
-  oauth_type: [
-    { required: true, message: T('ParamRequired', { param: 'oauth_type' }), trigger: 'blur' },
-  ],
-  issuer: [{ required: true, message: T('ParamRequired', { param: 'issuer' }), trigger: 'blur' }],
-  pkce_method: [
-    { required: false, message: T('ParamRequired', { param: 'pkce_method' }), trigger: 'blur' },
-    {
-      validator: (rule, value, callback) => {
-        const allowedValues = ['S256', 'plain'];
-        if (!allowedValues.includes(value)) {
-          callback(new Error(T('InvalidParam', { param: 'pkce_method' })));
-        } else {
-          callback(); // Verification passed
-        }
+  watch(() => listQuery.page, getList)
+
+  watch(() => listQuery.page_size, handlerQuery)
+
+  const formVisible = ref(false)
+  const formData = reactive({
+    id: 0,
+    op: '',
+    oauth_type: '',
+    issuer: '',
+    client_id: '',
+    client_secret: '',
+    redirect_url: '',
+    scopes: '',
+    auto_register: false,
+    pkce_enable: false,
+    pkce_method: 'S256',
+  })
+  const rules = {
+    client_id: [{ required: true, message: T('ParamRequired', { param: 'client_id' }), trigger: 'blur' }],
+    client_secret: [{ required: true, message: T('ParamRequired', { param: 'client_secret' }), trigger: 'blur' }],
+    // redirect_url: [{ required: true, message: T('ParamRequired', { param: 'redirect_url' }), trigger: 'blur' }],
+    oauth_type: [{ required: true, message: T('ParamRequired', { param: 'oauth_type' }), trigger: 'blur' }],
+    issuer: [{ required: true, message: T('ParamRequired', { param: 'issuer' }), trigger: 'blur' }],
+    pkce_method: [
+      { required: false, message: T('ParamRequired', { param: 'pkce_method' }), trigger: 'blur' },
+      {
+        validator: (rule, value, callback) => {
+          const allowedValues = ['S256', 'plain']
+          if (!allowedValues.includes(value)) {
+            callback(new Error(T('InvalidParam', { param: 'pkce_method' })))
+          } else {
+            callback() // Verification passed
+          }
+        },
+        trigger: 'change',
       },
-      trigger: 'change',
-    },
-  ],
-};
-
-const defaultRedirect = () => {
-  return `${app.setting.rustdeskConfig.api_server || window.location.origin}/api/oidc/callback`;
-};
-
-const toEdit = (row) => {
-  formVisible.value = true;
-  formData.id = row.id;
-  formData.op = row.op;
-  formData.oauth_type = row.oauth_type;
-  formData.issuer = row.issuer;
-  formData.client_id = row.client_id;
-  formData.client_secret = row.client_secret;
-  // formData.redirect_url = row.redirect_url || defaultRedirect()
-  formData.scopes = row.scopes;
-  formData.auto_register = row.auto_register;
-  formData.pkce_enable = row.pkce_enable;
-  formData.pkce_method = row.pkce_method;
-};
-const toAdd = () => {
-  formVisible.value = true;
-  formData.id = 0;
-  formData.op = '';
-  formData.oauth_type = '';
-  formData.issuer = '';
-  formData.client_id = '';
-  formData.client_secret = '';
-  // formData.redirect_url = defaultRedirect()
-  formData.scopes = '';
-  formData.auto_register = false;
-  formData.pkce_enable = false;
-  formData.pkce_method = 'S256';
-};
-const form = ref(null);
-const submit = async () => {
-  const v = await form.value.validate().catch((err) => false);
-  if (!v) {
-    return;
+    ],
   }
-  const api = formData.id ? update : create;
-  const res = await api(formData).catch((_) => false);
-  if (res) {
-    ElMessage.success(T('OperationSuccess'));
-    formVisible.value = false;
-    getList();
+
+  const defaultRedirect = () => {
+    return `${app.setting.rustdeskConfig.api_server || window.location.origin}/api/oidc/callback`
   }
-};
+
+  const toEdit = (row) => {
+    formVisible.value = true
+    formData.id = row.id
+    formData.op = row.op
+    formData.oauth_type = row.oauth_type
+    formData.issuer = row.issuer
+    formData.client_id = row.client_id
+    formData.client_secret = row.client_secret
+    // formData.redirect_url = row.redirect_url || defaultRedirect()
+    formData.scopes = row.scopes
+    formData.auto_register = row.auto_register
+    formData.pkce_enable = row.pkce_enable
+    formData.pkce_method = row.pkce_method
+  }
+  const toAdd = () => {
+    formVisible.value = true
+    formData.id = 0
+    formData.op = ''
+    formData.oauth_type = ''
+    formData.issuer = ''
+    formData.client_id = ''
+    formData.client_secret = ''
+    // formData.redirect_url = defaultRedirect()
+    formData.scopes = ''
+    formData.auto_register = false
+    formData.pkce_enable = false
+    formData.pkce_method = 'S256'
+  }
+  const form = ref(null)
+  const submit = async () => {
+    const v = await form.value.validate().catch(err => false)
+    if (!v) {
+      return
+    }
+    const api = formData.id ? update : create
+    const res = await api(formData).catch(_ => false)
+    if (res) {
+      ElMessage.success(T('OperationSuccess'))
+      formVisible.value = false
+      getList()
+    }
+  }
+
 </script>
 
 <style scoped lang="scss">

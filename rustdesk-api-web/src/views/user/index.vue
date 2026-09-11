@@ -60,48 +60,57 @@
 </template>
 
 <script setup>
-import { update } from '@/api/user';
-import { T } from '@/utils/i18n';
-import { useChangePwd, useDel, useRepositories, useToEditOrAdd } from '@/views/user/composables';
-import { ElMessage } from 'element-plus';
-import { onMounted, watch } from 'vue';
-//list
-const { listRes, listQuery, handlerQuery, getList, getGroups, toExport } = useRepositories();
+  import { useRepositories, useDel, useToEditOrAdd, useChangePwd } from '@/views/user/composables'
+  import { T } from '@/utils/i18n'
+  import { DISABLE_STATUS, ENABLE_STATUS } from '@/utils/common_options'
+  import { update } from '@/api/user'
+  import { ElMessageBox, ElMessage } from 'element-plus'
+  import { onMounted, watch } from 'vue'
+  //list
+  const {
+    listRes,
+    listQuery,
+    handlerQuery,
+    getList,
+    getGroups,
+    toExport,
+  } = useRepositories()
 
-onMounted(getGroups);
+  onMounted(getGroups)
 
-onMounted(getList);
+  onMounted(getList)
 
-watch(() => listQuery.page, getList);
-watch(() => listQuery.page_size, handlerQuery);
+  watch(() => listQuery.page, getList)
+  watch(() => listQuery.page_size, handlerQuery)
 
-const { toEdit, toAdd, toAddressBook, toTag } = useToEditOrAdd();
+  const { toEdit, toAdd, toAddressBook, toTag } = useToEditOrAdd()
 
-const { changePass } = useChangePwd();
+  const { changePass } = useChangePwd()
 
-//delete
-const { del } = useDel();
-const remove = async (row) => {
-  const res = await del(row.id);
-  if (res) {
-    getList(listQuery);
+  //delete
+  const { del } = useDel()
+  const remove = async (row) => {
+    const res = await del(row.id)
+    if (res) {
+      getList(listQuery)
+    }
   }
-};
 
-const changeStatus = async (row) => {
-  /*const confirm = await ElMessageBox.confirm(T('Confirm?', { param: T('Update') }), {
+  const changeStatus = async (row) => {
+    /*const confirm = await ElMessageBox.confirm(T('Confirm?', { param: T('Update') }), {
       confirmButtonText: T('Confirm'),
       cancelButtonText: T('Cancel'),
     }).catch(_ => false)
     if (!confirm) {
       return false
     }*/
-  const res = await update(row).catch((_) => false);
-  if (res) {
-    ElMessage.success(T('OperationSuccess'));
-    getList(listQuery);
+    const res = await update(row).catch(_ => false)
+    if (res) {
+      ElMessage.success(T('OperationSuccess'))
+      getList(listQuery)
+    }
   }
-};
+
 </script>
 
 <style scoped>

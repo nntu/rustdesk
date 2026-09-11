@@ -178,48 +178,56 @@
 </template>
 
 <script setup>
-import { loadAllUsers } from '@/global';
-import { useAppStore } from '@/store/app';
-import { useRepositories } from '@/views/address_book/index';
-import { onActivated, onMounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
+  import { onActivated, onMounted, watch } from 'vue'
+  import { useRepositories } from '@/views/address_book/index'
+  import { toWebClientLink } from '@/utils/webclient'
+  import { T } from '@/utils/i18n'
+  import { useRoute } from 'vue-router'
+  import { connectByClient } from '@/utils/peer'
+  import { useAppStore } from '@/store/app'
+  import { handleClipboard } from '@/utils/clipboard'
+  import { CopyDocument } from '@element-plus/icons-vue'
+  import PlatformIcons from '@/components/icons/platform.vue'
+  import { loadAllUsers } from '@/global'
 
-const appStore = useAppStore();
-const route = useRoute();
-const { allUsers, getAllUsers } = loadAllUsers();
+  const appStore = useAppStore()
+  const route = useRoute()
+  const { allUsers, getAllUsers } = loadAllUsers()
 
-const {
-  listRes,
-  listQuery,
-  getList,
-  handlerQuery,
-  collectionListRes,
+  const {
+    listRes,
+    listQuery,
+    getList,
+    handlerQuery,
+    collectionListRes,
 
-  del,
-  formVisible,
-  platformList,
-  formData,
-  toEdit,
-  toAdd,
-  submit,
-  changeUserForUpdate,
-  changeCollectionForUpdate,
-  collectionListResForUpdate,
-  tagListRes,
+    del,
+    formVisible,
+    platformList,
+    formData,
+    toEdit,
+    toAdd,
+    submit,
+    changeUserForUpdate,
+    changeCollectionForUpdate,
+    collectionListResForUpdate,
+    tagListRes,
 
-  changeQueryUser,
-} = useRepositories('admin');
+    changeQueryUser,
+  } = useRepositories('admin')
 
-if (route.query?.user_id) {
-  listQuery.user_id = Number.parseInt(route.query.user_id);
-}
-onMounted(getAllUsers);
-onMounted(getList);
-onActivated(getList);
+  if (route.query?.user_id) {
+    listQuery.user_id = parseInt(route.query.user_id)
+  }
+  onMounted(getAllUsers)
+  onMounted(getList)
+  onActivated(getList)
 
-watch(() => listQuery.page, getList);
+  watch(() => listQuery.page, getList)
 
-watch(() => listQuery.page_size, handlerQuery);
+  watch(() => listQuery.page_size, handlerQuery)
+
+
 </script>
 
 <style scoped lang="scss">

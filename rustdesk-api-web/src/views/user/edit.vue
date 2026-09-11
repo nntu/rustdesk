@@ -44,13 +44,16 @@
 </template>
 
 <script setup>
-import { useGetDetail, useSubmit } from '@/views/user/composables/edit';
-import { useRoute } from 'vue-router';
+  import { useRoute } from 'vue-router'
+  import { useGetDetail, useSubmit } from '@/views/user/composables/edit'
+  import { ENABLE_STATUS, DISABLE_STATUS } from '@/utils/common_options'
+  import { T } from '@/utils/i18n'
 
-const route = useRoute();
-const { form, item, getDetail, groupsList } = useGetDetail(route.params.id);
+  const route = useRoute()
+  const { form, item, getDetail, groupsList } = useGetDetail(route.params.id)
 
-const { root, rules, validate, submit, cancel } = useSubmit(form, route.params.id);
+  const { root, rules, validate, submit, cancel } = useSubmit(form, route.params.id)
+
 </script>
 
 <style lang="scss" scoped>

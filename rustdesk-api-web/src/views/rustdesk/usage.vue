@@ -23,39 +23,37 @@
   </el-card>
 </template>
 <script setup>
-import { sendCmd } from '@/api/rustdesk';
-import { RELAY_TARGET } from '@/views/rustdesk/options';
-import { reactive, watch } from 'vue';
 
-const props = defineProps({
-  canSend: Boolean,
-});
+  import { T } from '@/utils/i18n'
+  import { reactive, watch } from 'vue'
+  import { sendCmd } from '@/api/rustdesk'
+  import { RELAY_TARGET } from '@/views/rustdesk/options'
 
-const form = reactive({
-  get_cmd: 'u',
-  list: [],
-  target: RELAY_TARGET,
-  loading: false,
-});
-const getList = async () => {
-  form.loading = true;
-  const res = await sendCmd({ cmd: form.get_cmd, target: RELAY_TARGET }).catch((_) => false);
-  form.loading = false;
-  if (res) {
-    form.list = res.data
-      .split('\n')
-      .filter((i) => i)
-      .map((i) => i.split(' '));
-  }
-};
-watch(
-  () => props.canSend,
-  (v) => {
-    if (v) {
-      getList();
+  const props = defineProps({
+    canSend: Boolean,
+  })
+
+  const form = reactive({
+    get_cmd: 'u',
+    list: [],
+    target: RELAY_TARGET,
+    loading: false,
+  })
+  const getList = async () => {
+    form.loading = true
+    const res = await sendCmd({ cmd: form.get_cmd, target: RELAY_TARGET }).catch(_ => false)
+    form.loading = false
+    if (res) {
+      form.list = res.data.split('\n').filter(i => i).map(i => i.split(" "))
     }
-  },
-);
+  }
+  watch(() => props.canSend, (v) => {
+    if (v) {
+      getList()
+    }
+  })
+
+
 </script>
 <style scoped lang="scss">
 .simple-card{

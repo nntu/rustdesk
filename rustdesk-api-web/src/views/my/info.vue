@@ -84,73 +84,71 @@
 </template>
 
 <script setup>
-import { bind, unbind } from '@/api/oauth';
-import { myOauth } from '@/api/user';
-import { useAppStore } from '@/store/app';
-import { useUserStore } from '@/store/user';
-import { T } from '@/utils/i18n';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { marked } from 'marked';
-import { computed, onMounted, ref } from 'vue';
+  import changePwdDialog from '@/components/changePwdDialog.vue'
+  import { computed, ref, onMounted } from 'vue'
+  import { useUserStore } from '@/store/user'
+  import { useAppStore } from '@/store/app'
+  import { bind, unbind } from '@/api/oauth'
+  import { myOauth } from '@/api/user'
+  import { ElMessageBox, ElMessage } from 'element-plus'
+  import { T } from '@/utils/i18n'
+  import { marked } from 'marked'
 
-const appStore = useAppStore();
-const userStore = useUserStore();
-const changePwdVisible = ref(false);
+  const appStore = useAppStore()
+  const userStore = useUserStore()
+  const changePwdVisible = ref(false)
 
-const showChangePwd = () => {
-  changePwdVisible.value = true;
-};
-
-const oidcData = ref([]);
-
-const getMyOauth = async () => {
-  const res = await myOauth().catch((_) => false);
-  if (res) {
-    oidcData.value = res.data;
+  const showChangePwd = () => {
+    changePwdVisible.value = true
   }
-};
 
-onMounted(() => {
-  appStore.loadRustdeskConfig();
-  getMyOauth();
-});
+  const oidcData = ref([])
 
-const toBind = async (row) => {
-  const res = await bind({ op: row.op }).catch((_) => false);
-  if (res) {
-    const { code, url } = res.data;
-    window.open(url);
+  const getMyOauth = async () => {
+    const res = await myOauth().catch(_ => false)
+    if (res) {
+      oidcData.value = res.data
+    }
   }
-};
 
-const toUnBind = async (row) => {
-  const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('UnBind') }), {
-    confirmButtonText: T('Confirm'),
-    cancelButtonText: T('Cancel'),
-    type: 'warning',
-  }).catch((_) => false);
-  if (!cf) {
-    return false;
-  }
-  const res = await unbind({ op: row.op }).catch((_) => false);
-  if (res) {
-    getMyOauth();
-  }
-};
+  onMounted(() => {
+    appStore.loadRustdeskConfig()
+    getMyOauth()
+  })
 
-const copyText = (text) => {
-  if (!text) return;
-  navigator.clipboard
-    .writeText(text)
-    .then(() => {
-      ElMessage.success(T('CopySuccess') || 'Sao chép thành công!');
+  const toBind = async (row) => {
+    const res = await bind({ op: row.op }).catch(_ => false)
+    if (res) {
+      const { code, url } = res.data
+      window.open(url)
+    }
+  }
+
+  const toUnBind = async (row) => {
+    const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('UnBind') }), {
+      confirmButtonText: T('Confirm'),
+      cancelButtonText: T('Cancel'),
+      type: 'warning',
+    }).catch(_ => false)
+    if (!cf) {
+      return false
+    }
+    const res = await unbind({ op: row.op }).catch(_ => false)
+    if (res) {
+      getMyOauth()
+    }
+  }
+
+  const copyText = (text) => {
+    if (!text) return
+    navigator.clipboard.writeText(text).then(() => {
+      ElMessage.success(T('CopySuccess') || 'Sao chép thành công!')
+    }).catch(() => {
+      ElMessage.error(T('CopyFailed') || 'Sao chép thất bại!')
     })
-    .catch(() => {
-      ElMessage.error(T('CopyFailed') || 'Sao chép thất bại!');
-    });
-};
+  }
 
-const html = computed((_) => marked(appStore.setting.hello || ''));
+  const html = computed(_ => marked(appStore.setting.hello||''))
 </script>
 
 <style scoped lang="scss">

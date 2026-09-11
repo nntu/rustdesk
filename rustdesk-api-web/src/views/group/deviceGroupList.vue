@@ -49,89 +49,88 @@
 </template>
 
 <script setup>
-import { create, list, remove, update } from '@/api/device_group';
-import { T } from '@/utils/i18n';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { onActivated, onMounted, reactive, ref, watch } from 'vue';
+  import { onMounted, reactive, watch, ref, onActivated } from 'vue'
+  import { list, create, update, detail, remove } from '@/api/device_group'
+  import { ElMessage, ElMessageBox } from 'element-plus'
+  import { T } from '@/utils/i18n'
 
-const listRes = reactive({
-  list: [],
-  total: 0,
-  loading: false,
-});
-const listQuery = reactive({
-  page: 1,
-  page_size: 10,
-});
+  const listRes = reactive({
+    list: [], total: 0, loading: false,
+  })
+  const listQuery = reactive({
+    page: 1,
+    page_size: 10,
+  })
 
-const getList = async () => {
-  listRes.loading = true;
-  const res = await list(listQuery).catch((_) => false);
-  listRes.loading = false;
-  if (res) {
-    listRes.list = res.data.list;
-    listRes.total = res.data.total;
+  const getList = async () => {
+    listRes.loading = true
+    const res = await list(listQuery).catch(_ => false)
+    listRes.loading = false
+    if (res) {
+      listRes.list = res.data.list
+      listRes.total = res.data.total
+    }
   }
-};
-const handlerQuery = () => {
-  if (listQuery.page === 1) {
-    getList();
-  } else {
-    listQuery.page = 1;
-  }
-};
-
-const del = async (row) => {
-  const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('Delete') }), {
-    confirmButtonText: T('Confirm'),
-    cancelButtonText: T('Cancel'),
-    type: 'warning',
-  }).catch((_) => false);
-  if (!cf) {
-    return false;
+  const handlerQuery = () => {
+    if (listQuery.page === 1) {
+      getList()
+    } else {
+      listQuery.page = 1
+    }
   }
 
-  const res = await remove({ id: row.id }).catch((_) => false);
-  if (res) {
-    ElMessage.success(T('OperationSuccess'));
-    getList();
+  const del = async (row) => {
+    const cf = await ElMessageBox.confirm(T('Confirm?', { param: T('Delete') }), {
+      confirmButtonText: T('Confirm'),
+      cancelButtonText: T('Cancel'),
+      type: 'warning',
+    }).catch(_ => false)
+    if (!cf) {
+      return false
+    }
+
+    const res = await remove({ id: row.id }).catch(_ => false)
+    if (res) {
+      ElMessage.success(T('OperationSuccess'))
+      getList()
+    }
   }
-};
-onMounted(getList);
-onActivated(getList);
+  onMounted(getList)
+  onActivated(getList)
 
-watch(() => listQuery.page, getList);
+  watch(() => listQuery.page, getList)
 
-watch(() => listQuery.page_size, handlerQuery);
+  watch(() => listQuery.page_size, handlerQuery)
 
-const formVisible = ref(false);
-const formData = reactive({
-  id: 0,
-  name: '',
-  type: 1,
-});
+  const formVisible = ref(false)
+  const formData = reactive({
+    id: 0,
+    name: '',
+    type: 1,
+  })
 
-const toEdit = (row) => {
-  formVisible.value = true;
-  formData.id = row.id;
-  formData.name = row.name;
-  formData.type = row.type;
-};
-const toAdd = () => {
-  formVisible.value = true;
-  formData.id = 0;
-  formData.name = '';
-  formData.type = 1;
-};
-const submit = async () => {
-  const api = formData.id ? update : create;
-  const res = await api(formData).catch((_) => false);
-  if (res) {
-    ElMessage.success(T('OperationSuccess'));
-    formVisible.value = false;
-    getList();
+  const toEdit = (row) => {
+    formVisible.value = true
+    formData.id = row.id
+    formData.name = row.name
+    formData.type = row.type
   }
-};
+  const toAdd = () => {
+    formVisible.value = true
+    formData.id = 0
+    formData.name = ''
+    formData.type = 1
+  }
+  const submit = async () => {
+    const api = formData.id ? update : create
+    const res = await api(formData).catch(_ => false)
+    if (res) {
+      ElMessage.success(T('OperationSuccess'))
+      formVisible.value = false
+      getList()
+    }
+  }
+
 </script>
 
 <style scoped lang="scss">

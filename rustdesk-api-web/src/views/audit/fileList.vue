@@ -96,37 +96,47 @@
 </template>
 
 <script setup>
-import { useFileRepositories } from '@/views/audit/reponsitories';
-import { onActivated, onMounted, ref, watch } from 'vue';
+  import { onActivated, onMounted, ref, watch } from 'vue'
+  import { useFileRepositories } from '@/views/audit/reponsitories'
+  import { T } from '@/utils/i18n'
+  import { sizeFormat } from '@/utils/file'
+  import { Right } from '@element-plus/icons-vue'
 
-const showDirFileNum = 3;
-const { listRes, listQuery, getList, handlerQuery, del, batchdel, toExport } =
-  useFileRepositories();
+  const showDirFileNum = 3
+  const {
+    listRes,
+    listQuery,
+    getList,
+    handlerQuery,
+    del,
+    batchdel,
+    toExport,
+  } = useFileRepositories()
 
-onMounted(getList);
-onActivated(getList);
+  onMounted(getList)
+  onActivated(getList)
 
-watch(() => listQuery.page, getList);
+  watch(() => listQuery.page, getList)
 
-watch(() => listQuery.page_size, handlerQuery);
+  watch(() => listQuery.page_size, handlerQuery)
 
-const allFilesVisible = ref(false);
-const showFiles = ref([]);
-const showAllFile = (files) => {
-  showFiles.value = files;
-  allFilesVisible.value = true;
-};
-
-const multipleSelection = ref([]);
-const handleSelectionChange = (val) => {
-  multipleSelection.value = val;
-};
-const toBatchDelete = () => {
-  if (multipleSelection.value.length === 0) {
-    return;
+  const allFilesVisible = ref(false)
+  const showFiles = ref([])
+  const showAllFile = (files) => {
+    showFiles.value = files
+    allFilesVisible.value = true
   }
-  batchdel(multipleSelection.value);
-};
+
+  const multipleSelection = ref([])
+  const handleSelectionChange = (val) => {
+    multipleSelection.value = val
+  }
+  const toBatchDelete = () => {
+    if (multipleSelection.value.length === 0) {
+      return
+    }
+    batchdel(multipleSelection.value)
+  }
 </script>
 
 <style scoped lang="scss">

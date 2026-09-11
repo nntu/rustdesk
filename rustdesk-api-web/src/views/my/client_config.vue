@@ -266,142 +266,139 @@
 </template>
 
 <script setup>
-import { createDeployToken, listDeployTokens, revokeDeployToken } from '@/api/my/deploy';
-import { useAppStore } from '@/store/app';
-import { T } from '@/utils/i18n';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { onMounted, ref } from 'vue';
+  import { onMounted, ref } from 'vue'
+  import { useAppStore } from '@/store/app'
+  import { ElMessage, ElMessageBox } from 'element-plus'
+  import { T } from '@/utils/i18n'
+  import { Cpu, Notebook, Download, Tools } from '@element-plus/icons-vue'
+  import { createDeployToken, listDeployTokens, revokeDeployToken } from '@/api/my/deploy'
 
-const appStore = useAppStore();
-const powershellCommand = ref('');
-const downloadRunCommand = ref('');
-const scriptUrl = ref('');
-const tokenExpiresAt = ref(0);
-const generating = ref(false);
-const passwordMode = ref('structured');
-const customPassword = ref('');
-const deployTokens = ref([]);
-const tokenListLoading = ref(false);
-const tokenPage = ref(1);
-const tokenPageSize = ref(10);
-const tokenTotal = ref(0);
-const revokingId = ref(0);
+  const appStore = useAppStore()
+  const powershellCommand = ref('')
+  const downloadRunCommand = ref('')
+  const scriptUrl = ref('')
+  const tokenExpiresAt = ref(0)
+  const generating = ref(false)
+  const passwordMode = ref('structured')
+  const customPassword = ref('')
+  const deployTokens = ref([])
+  const tokenListLoading = ref(false)
+  const tokenPage = ref(1)
+  const tokenPageSize = ref(10)
+  const tokenTotal = ref(0)
+  const revokingId = ref(0)
 
-onMounted(() => {
-  appStore.loadRustdeskConfig();
-  loadDeployTokens();
-});
+  onMounted(() => {
+    appStore.loadRustdeskConfig()
+    loadDeployTokens()
+  })
 
-const loadDeployTokens = async () => {
-  tokenListLoading.value = true;
-  try {
-    const res = await listDeployTokens({
-      page: tokenPage.value,
-      page_size: tokenPageSize.value,
-    });
-    deployTokens.value = res.data.list || [];
-    tokenTotal.value = res.data.total || 0;
-  } catch (e) {
-    deployTokens.value = [];
-  } finally {
-    tokenListLoading.value = false;
-  }
-};
-
-const onTokenPageChange = (page) => {
-  tokenPage.value = page;
-  loadDeployTokens();
-};
-
-const deployTokenStatusLabel = (status) => {
-  const map = {
-    active: T('DeployTokenActive') || 'Dang hoat dong',
-    used: T('DeployTokenUsed') || 'Da dung / da huy',
-    expired: T('DeployTokenExpired') || 'Het han',
-  };
-  return map[status] || status;
-};
-
-const deployTokenTagType = (status) => {
-  if (status === 'active') return 'success';
-  if (status === 'expired') return 'warning';
-  return 'info';
-};
-
-const revokeToken = async (row) => {
-  const cf = await ElMessageBox.confirm(
-    T('RevokeDeployTokenConfirm') ||
-      'Huy token nay? Script deploy dang chay se khong dung duoc nua.',
-    T('Confirm') || 'Xac nhan',
-    {
-      confirmButtonText: T('Confirm') || 'Xac nhan',
-      cancelButtonText: T('Cancel') || 'Huy',
-      type: 'warning',
-    },
-  ).catch(() => false);
-  if (!cf) return;
-
-  revokingId.value = row.id;
-  try {
-    await revokeDeployToken({ id: row.id });
-    ElMessage.success(T('RevokeDeployTokenSuccess') || 'Da huy token deploy.');
-    loadDeployTokens();
-  } catch (e) {
-    ElMessage.error(T('RevokeDeployTokenFailed') || 'Khong the huy token.');
-  } finally {
-    revokingId.value = 0;
-  }
-};
-
-const generateDeployCommand = async () => {
-  if (passwordMode.value === 'custom') {
-    const pwd = customPassword.value.trim();
-    if (pwd.length < 4 || pwd.length > 32) {
-      ElMessage.warning(T('DeployCustomPasswordHint') || 'Mat khau tuy chinh phai tu 4-32 ky tu.');
-      return;
+  const loadDeployTokens = async () => {
+    tokenListLoading.value = true
+    try {
+      const res = await listDeployTokens({
+        page: tokenPage.value,
+        page_size: tokenPageSize.value,
+      })
+      deployTokens.value = res.data.list || []
+      tokenTotal.value = res.data.total || 0
+    } catch (e) {
+      deployTokens.value = []
+    } finally {
+      tokenListLoading.value = false
     }
   }
-  generating.value = true;
-  try {
-    const res = await createDeployToken({
-      password_mode: passwordMode.value,
-      custom_password: passwordMode.value === 'custom' ? customPassword.value.trim() : '',
-    });
-    powershellCommand.value = res.data.powershell_command;
-    downloadRunCommand.value = res.data.download_run_command || res.data.powershell_command;
-    scriptUrl.value = res.data.script_url;
-    tokenExpiresAt.value = res.data.expires_at;
-    ElMessage.success(T('GenerateDeployCommandSuccess') || 'Đã tạo lệnh triển khai mới!');
-    tokenPage.value = 1;
-    loadDeployTokens();
-  } catch (e) {
-    ElMessage.error(T('GenerateDeployCommandFailed') || 'Không thể tạo lệnh triển khai.');
-  } finally {
-    generating.value = false;
+
+  const onTokenPageChange = (page) => {
+    tokenPage.value = page
+    loadDeployTokens()
   }
-};
 
-const formatExpire = (ts) => {
-  if (!ts) return '';
-  return new Date(ts * 1000).toLocaleString();
-};
+  const deployTokenStatusLabel = (status) => {
+    const map = {
+      active: T('DeployTokenActive') || 'Dang hoat dong',
+      used: T('DeployTokenUsed') || 'Da dung / da huy',
+      expired: T('DeployTokenExpired') || 'Het han',
+    }
+    return map[status] || status
+  }
 
-const downloadScript = () => {
-  if (!scriptUrl.value) return;
-  window.open(scriptUrl.value, '_blank');
-};
+  const deployTokenTagType = (status) => {
+    if (status === 'active') return 'success'
+    if (status === 'expired') return 'warning'
+    return 'info'
+  }
 
-const copyText = (text) => {
-  if (!text) return;
-  navigator.clipboard
-    .writeText(text)
-    .then(() => {
-      ElMessage.success(T('CopySuccess') || 'Sao chép thành công!');
+  const revokeToken = async (row) => {
+    const cf = await ElMessageBox.confirm(
+      T('RevokeDeployTokenConfirm') || 'Huy token nay? Script deploy dang chay se khong dung duoc nua.',
+      T('Confirm') || 'Xac nhan',
+      {
+        confirmButtonText: T('Confirm') || 'Xac nhan',
+        cancelButtonText: T('Cancel') || 'Huy',
+        type: 'warning',
+      },
+    ).catch(() => false)
+    if (!cf) return
+
+    revokingId.value = row.id
+    try {
+      await revokeDeployToken({ id: row.id })
+      ElMessage.success(T('RevokeDeployTokenSuccess') || 'Da huy token deploy.')
+      loadDeployTokens()
+    } catch (e) {
+      ElMessage.error(T('RevokeDeployTokenFailed') || 'Khong the huy token.')
+    } finally {
+      revokingId.value = 0
+    }
+  }
+
+  const generateDeployCommand = async () => {
+    if (passwordMode.value === 'custom') {
+      const pwd = customPassword.value.trim()
+      if (pwd.length < 4 || pwd.length > 32) {
+        ElMessage.warning(T('DeployCustomPasswordHint') || 'Mat khau tuy chinh phai tu 4-32 ky tu.')
+        return
+      }
+    }
+    generating.value = true
+    try {
+      const res = await createDeployToken({
+        password_mode: passwordMode.value,
+        custom_password: passwordMode.value === 'custom' ? customPassword.value.trim() : '',
+      })
+      powershellCommand.value = res.data.powershell_command
+      downloadRunCommand.value = res.data.download_run_command || res.data.powershell_command
+      scriptUrl.value = res.data.script_url
+      tokenExpiresAt.value = res.data.expires_at
+      ElMessage.success(T('GenerateDeployCommandSuccess') || 'Đã tạo lệnh triển khai mới!')
+      tokenPage.value = 1
+      loadDeployTokens()
+    } catch (e) {
+      ElMessage.error(T('GenerateDeployCommandFailed') || 'Không thể tạo lệnh triển khai.')
+    } finally {
+      generating.value = false
+    }
+  }
+
+  const formatExpire = (ts) => {
+    if (!ts) return ''
+    return new Date(ts * 1000).toLocaleString()
+  }
+
+  const downloadScript = () => {
+    if (!scriptUrl.value) return
+    window.open(scriptUrl.value, '_blank')
+  }
+
+  const copyText = (text) => {
+    if (!text) return
+    navigator.clipboard.writeText(text).then(() => {
+      ElMessage.success(T('CopySuccess') || 'Sao chép thành công!')
+    }).catch(() => {
+      ElMessage.error(T('CopyFailed') || 'Sao chép thất bại!')
     })
-    .catch(() => {
-      ElMessage.error(T('CopyFailed') || 'Sao chép thất bại!');
-    });
-};
+  }
 </script>
 
 <style scoped lang="scss">

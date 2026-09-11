@@ -83,39 +83,41 @@
 </template>
 
 <script setup>
-import { useRepositories } from '@/views/tag';
-import { onActivated, onMounted, watch } from 'vue';
+  import { onMounted, watch, onActivated } from 'vue'
+  import { useRepositories } from '@/views/tag'
+  import { T } from '@/utils/i18n'
 
-const {
-  listRes,
-  listQuery,
-  getList,
-  handlerQuery,
-  del,
-  formVisible,
-  formData,
-  toEdit,
-  toAdd,
-  submit,
-  activeChange,
-  currentColor,
+  const {
+    listRes,
+    listQuery,
+    getList,
+    handlerQuery,
+    del,
+    formVisible,
+    formData,
+    toEdit,
+    toAdd,
+    submit,
+    activeChange,
+    currentColor,
 
-  collectionListRes,
-  getCollectionList,
+    collectionListRes,
+    getCollectionList,
 
-  collectionListResForUpdate,
-  getCollectionListForUpdate,
-} = useRepositories('my');
+    collectionListResForUpdate,
+    getCollectionListForUpdate,
+  } = useRepositories('my')
 
-onMounted(getList);
-onActivated(getList);
+  onMounted(getList)
+  onActivated(getList)
 
-watch(() => listQuery.page, getList);
+  watch(() => listQuery.page, getList)
 
-watch(() => listQuery.page_size, handlerQuery);
+  watch(() => listQuery.page_size, handlerQuery)
 
-onMounted(getCollectionList);
-onMounted(getCollectionListForUpdate);
+  onMounted(getCollectionList)
+  onMounted(getCollectionListForUpdate)
+
 </script>
 
 <style scoped lang="scss">

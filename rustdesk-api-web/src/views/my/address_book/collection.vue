@@ -54,41 +54,47 @@
 </template>
 
 <script setup>
-import { T } from '@/utils/i18n';
-import { useRepositories } from '@/views/address_book/collection';
-import { computed, ref } from 'vue';
-import { onMounted, watch } from 'vue';
+  import { T } from '@/utils/i18n'
+  import { computed, ref } from 'vue'
+  import { useRepositories } from '@/views/address_book/collection'
+  import { onActivated, onMounted, watch } from 'vue'
+  import Rule from '@/views/address_book/rule.vue'
 
-const {
-  listRes,
-  listQuery,
-  getList,
-  handlerQuery,
-  del,
-  formVisible,
-  formData,
-  toEdit,
-  toAdd,
-  submit,
-} = useRepositories('my');
+  const {
+    listRes,
+    listQuery,
+    getList,
+    handlerQuery,
+    del,
+    formVisible,
+    formData,
+    toEdit,
+    toAdd,
+    submit,
+  } = useRepositories('my')
 
-onMounted(getList);
+  onMounted(getList)
 
-watch(() => listQuery.page, getList);
+  watch(() => listQuery.page, getList)
 
-watch(() => listQuery.page_size, handlerQuery);
-const list = computed((_) => {
-  if (listQuery.page > 1) {
-    return listRes.list;
+  watch(() => listQuery.page_size, handlerQuery)
+  const list = computed(_ => {
+    if (listQuery.page > 1) {
+      return listRes.list
+    } else {
+      return [
+        { id: 0, name: T('MyAddressBook') },
+        ...listRes.list,
+      ]
+    }
+  })
+  const clickRow = ref({})
+  const rulesVisible = ref(false)
+  const showRules = (row) => {
+    clickRow.value = row
+    rulesVisible.value = true
   }
-  return [{ id: 0, name: T('MyAddressBook') }, ...listRes.list];
-});
-const clickRow = ref({});
-const rulesVisible = ref(false);
-const showRules = (row) => {
-  clickRow.value = row;
-  rulesVisible.value = true;
-};
+
 </script>
 
 <style scoped lang="scss">

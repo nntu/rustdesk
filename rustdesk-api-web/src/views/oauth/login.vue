@@ -22,42 +22,43 @@
 </template>
 
 <script setup>
-import { confirm, info } from '@/api/oauth';
-import { T } from '@/utils/i18n';
-import { ElMessage } from 'element-plus';
-import { ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+  import { ref, onMounted } from 'vue'
+  import { info, confirm } from '@/api/oauth'
+  import { useRoute, useRouter } from 'vue-router'
+  import { ElMessage } from 'element-plus'
+  import { T } from '@/utils/i18n'
 
-const oauthInfo = ref({});
-const route = useRoute();
-const router = useRouter();
-const code = route.params?.code;
-if (!code) {
-  // router.push('/')
-}
-const getInfo = async () => {
-  const res = await info({ code }).catch((_) => false);
-  if (res) {
-    oauthInfo.value = res.data;
-  } else {
+  const oauthInfo = ref({})
+  const route = useRoute()
+  const router = useRouter()
+  const code = route.params?.code
+  if (!code) {
     // router.push('/')
   }
-};
-getInfo();
-const resStatus = ref(0);
-const toConfirm = async () => {
-  const res = await confirm({ code }).catch((_) => false);
-  if (res) {
-    resStatus.value = 1;
-    ElMessage.success(T('OperationSuccessAndCloseAfter3Seconds'));
-    setTimeout((_) => {
-      out();
-    }, 3000);
+  const getInfo = async () => {
+    const res = await info({ code }).catch(_ => false)
+    if (res) {
+      oauthInfo.value = res.data
+    } else {
+      // router.push('/')
+    }
   }
-};
-const out = () => {
-  window.close();
-};
+  getInfo()
+  const resStatus = ref(0)
+  const toConfirm = async () => {
+    const res = await confirm({ code }).catch(_ => false)
+    if (res) {
+      resStatus.value = 1
+      ElMessage.success(T('OperationSuccessAndCloseAfter3Seconds'))
+      setTimeout(_ => {
+        out()
+      }, 3000)
+    }
+  }
+  const out = () => {
+    window.close()
+  }
+
 </script>
 
 <style scoped lang="scss">

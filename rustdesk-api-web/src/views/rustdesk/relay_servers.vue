@@ -17,49 +17,48 @@
   </el-card>
 </template>
 <script setup>
-import { sendCmd } from '@/api/rustdesk';
-import { T } from '@/utils/i18n';
-import { ID_TARGET } from '@/views/rustdesk/options';
-import { ElMessage } from 'element-plus';
-import { reactive, watch } from 'vue';
 
-const props = defineProps({
-  canSend: Boolean,
-});
+  import { T } from '@/utils/i18n'
+  import { reactive, watch } from 'vue'
+  import { sendCmd } from '@/api/rustdesk'
+  import { ElMessage } from 'element-plus'
+  import { ID_TARGET } from '@/views/rustdesk/options'
 
-const form = reactive({
-  cmd: 'rs',
-  option: '',
-  target: ID_TARGET,
-  loading: false,
-});
-const get = async () => {
-  form.loading = true;
-  const res = await sendCmd({ cmd: 'rs', target: ID_TARGET }).catch((_) => false);
-  form.loading = false;
-  if (res) {
-    const data = res.data.split('\n').filter((i) => i);
-    form.option = data.join(',');
-  }
-};
-const save = async () => {
-  const res = await sendCmd(form).catch((_) => false);
-  if (res) {
-    ElMessage.success(T('OperationSuccess'));
-  }
-};
-watch(
-  () => props.canSend,
-  (v) => {
-    if (v) {
-      get();
+  const props = defineProps({
+    canSend: Boolean,
+  })
+
+
+  const form = reactive({
+    cmd: 'rs',
+    option: '',
+    target: ID_TARGET,
+    loading: false,
+  })
+  const get = async () => {
+    form.loading = true
+    const res = await sendCmd({ cmd: 'rs', target: ID_TARGET }).catch(_ => false)
+    form.loading = false
+    if (res) {
+      const data = res.data.split('\n').filter(i => i)
+      form.option = data.join(',')
     }
-  },
-);
-//In order to automatically resave after setting always_use_relay to prevent being reset
-defineExpose({
-  save,
-});
+  }
+  const save = async () => {
+    const res = await sendCmd(form).catch(_ => false)
+    if (res) {
+      ElMessage.success(T('OperationSuccess'))
+    }
+  }
+  watch(() => props.canSend, (v) => {
+    if (v) {
+      get()
+    }
+  })
+  //In order to automatically resave after setting always_use_relay to prevent being reset
+  defineExpose({
+    save,
+  });
 </script>
 <style scoped lang="scss">
 

@@ -27,20 +27,21 @@
 </template>
 
 <script setup>
-import { useAppStore } from '@/store/app';
-import { useTagsStore } from '@/store/tags';
-import { computed, ref } from 'vue';
+  import { useAppStore } from '@/store/app'
+  import { useTagsStore } from '@/store/tags'
+  import { ref, computed } from 'vue'
+  import Tags from '@/layout/components/tags/index.vue'
+  import GAside from '@/layout/components/aside.vue'
+  import GHeader from '@/layout/components/header.vue'
 
-const appStore = useAppStore();
-const tagStore = useTagsStore();
-const sideBarWidth = computed(() => appStore.setting.locale.sideBarWidth);
-const leftWidth = computed(() =>
-  appStore.setting.sideIsCollapse ? '64px' : 'var(--sideBarWidth)',
-);
+  const appStore = useAppStore()
+  const tagStore = useTagsStore()
+  const sideBarWidth = computed(() => appStore.setting.locale.sideBarWidth)
+  const leftWidth = computed(() => appStore.setting.sideIsCollapse ? '64px' : 'var(--sideBarWidth)')
 
-const cachedTags = ref([]);
+  const cachedTags = ref([])
 
-cachedTags.value = tagStore.cached;
+  cachedTags.value = tagStore.cached
 </script>
 
 <style lang="scss" scoped>

@@ -165,75 +165,85 @@
 </template>
 
 <script setup>
-import { list as fetchTagList } from '@/api/tag';
-import { useAppStore } from '@/store/app';
-import { useRepositories } from '@/views/address_book';
-import { useRepositories as useCollectionRepositories } from '@/views/address_book/collection';
-import { useRepositories as useTagRepositories } from '@/views/tag/index';
-import { onActivated, onMounted, ref, watch } from 'vue';
+  import { onActivated, onMounted, reactive, ref, watch } from 'vue'
+  import { list as fetchTagList } from '@/api/tag'
+  import { useRepositories } from '@/views/address_book'
+  import { useRepositories as useCollectionRepositories } from '@/views/address_book/collection'
+  import { useRepositories as useTagRepositories } from '@/views/tag/index'
+  import { toWebClientLink } from '@/utils/webclient'
+  import { T } from '@/utils/i18n'
+  import shareByWebClient from '@/views/address_book/components/shareByWebClient.vue'
+  import { useAppStore } from '@/store/app'
+  import { connectByClient } from '@/utils/peer'
+  import { handleClipboard } from '@/utils/clipboard'
+  import { CopyDocument } from '@element-plus/icons-vue'
 
-const appStore = useAppStore();
-const tagList = ref([]);
-const fetchTagListData = async () => {
-  const res = await fetchTagList({ is_my: 1 }).catch((_) => false);
-  if (res) {
-    tagList.value = res.data.list;
+  const appStore = useAppStore()
+  const tagList = ref([])
+  const fetchTagListData = async () => {
+    const res = await fetchTagList({ is_my: 1 }).catch(_ => false)
+    if (res) {
+      tagList.value = res.data.list
+    }
   }
-};
-fetchTagListData();
+  fetchTagListData()
 
-const {
-  listRes,
-  listQuery,
-  getList,
-  handlerQuery,
-  del,
-  formVisible,
-  platformList,
-  formData,
-  toEdit,
-  toAdd,
-  submit,
-  shareToWebClientVisible,
-  shareToWebClientForm,
-  toShowShare,
-} = useRepositories();
+  const {
+    listRes,
+    listQuery,
+    getList,
+    handlerQuery,
+    del,
+    formVisible,
+    platformList,
+    formData,
+    toEdit,
+    toAdd,
+    submit,
+    shareToWebClientVisible,
+    shareToWebClientForm,
+    toShowShare,
+  } = useRepositories()
 
-listQuery.is_my = 1;
+  listQuery.is_my = 1
 
-onMounted(getList);
-onActivated(getList);
+  onMounted(getList)
+  onActivated(getList)
 
-watch(() => listQuery.page, getList);
+  watch(() => listQuery.page, getList)
 
-watch(() => listQuery.page_size, handlerQuery);
-const {
-  listRes: collectionListRes,
-  listQuery: collectionListQuery,
-  getList: getCollectionList,
-} = useCollectionRepositories();
-collectionListQuery.is_my = 1;
-collectionListQuery.page_size = 999;
-onMounted(getCollectionList);
+  watch(() => listQuery.page_size, handlerQuery)
+  const {
+    listRes: collectionListRes,
+    listQuery: collectionListQuery,
+    getList: getCollectionList,
+  } = useCollectionRepositories()
+  collectionListQuery.is_my = 1
+  collectionListQuery.page_size = 999
+  onMounted(getCollectionList)
 
-const alert = (msg) => {
-  window.alert(msg);
-};
-
-const { listRes: tagListRes, listQuery: tagListQuery, getList: getTagList } = useTagRepositories();
-tagListQuery.is_my = 1;
-tagListQuery.page_size = 999;
-onMounted(getTagList);
-const checkedTags = ref(['111']);
-const toggleTag = async (tag) => {
-  if (checkedTags.value.includes(tag.name)) {
-    checkedTags.value = checkedTags.value.filter((t) => t !== tag.name);
-  } else {
-    checkedTags.value.push(tag.name);
+  const alert = (msg) => {
+    window.alert(msg)
   }
-  // listQuery.tags = checkedTags.value.join(',')
-  // getList()
-};
+
+  const {
+    listRes: tagListRes,
+    listQuery: tagListQuery,
+    getList: getTagList,
+  } = useTagRepositories()
+  tagListQuery.is_my = 1
+  tagListQuery.page_size = 999
+  onMounted(getTagList)
+  const checkedTags = ref(['111'])
+  const toggleTag = async (tag) => {
+    if (checkedTags.value.includes(tag.name)) {
+      checkedTags.value = checkedTags.value.filter(t => t !== tag.name)
+    } else {
+      checkedTags.value.push(tag.name)
+    }
+    // listQuery.tags = checkedTags.value.join(',')
+    // getList()
+  }
 </script>
 
 <style scoped lang="scss">

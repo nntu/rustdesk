@@ -23,29 +23,31 @@
 </template>
 
 <script>
-import { T } from '@/utils/i18n';
-import { defineComponent } from 'vue';
+  import { defineComponent } from 'vue'
+  import { T } from '@/utils/i18n'
 
-export default defineComponent({
-  name: 'MenuItem',
-  props: {
-    route: {},
-  },
-  mounted() {},
-  setup(props) {
-    //Determine a route with only one child
-    const parseRoute = (route) => {
-      if (route.children && route.children.filter((c) => !c.meta?.hide).length === 1) {
-        return route.children.filter((c) => !c.meta?.hide)[0];
+  export default defineComponent({
+    name: 'MenuItem',
+    props: {
+      route: {},
+    },
+    mounted () {
+    },
+    setup (props) {
+      //Determine a route with only one child
+      const parseRoute = (route) => {
+        if (route.children && route.children.filter(c => !c.meta?.hide).length === 1) {
+          return route.children.filter(c => !c.meta?.hide)[0]
+        } else {
+          return route
+        }
       }
-      return route;
-    };
-    return {
-      parseRoute,
-      T,
-    };
-  },
-});
+      return {
+        parseRoute,
+        T,
+      }
+    },
+  })
 </script>
 
 <style lang="scss" scoped>

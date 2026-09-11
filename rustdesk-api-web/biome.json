@@ -16,7 +16,7 @@
       },
       "correctness": {
         "noUnusedVariables": "off",
-        "noUnusedImports": "warn"
+        "noUnusedImports": "off"
       },
       "complexity": {
         "noExtraBooleanCast": "warn"
@@ -46,7 +46,8 @@
       "dist/**",
       "node_modules/**",
       "src/utils/webclient/message.ts",
-      "src/utils/webclient/rendezvous.ts"
+      "src/utils/webclient/rendezvous.ts",
+      "**/*.vue"
     ]
   }
 }
