@@ -31,7 +31,7 @@ func (ct *Tag) List(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	query.UserId = int(u.Id)
 	res := service.AllService.TagService.List(query.Page, query.PageSize, func(tx *gorm.DB) {
 		tx.Preload("Collection", func(txc *gorm.DB) *gorm.DB {
@@ -68,7 +68,7 @@ func (ct *Tag) Create(c *gin.Context) {
 		return
 	}
 	t := f.ToTag()
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	t.UserId = u.Id
 	err := service.AllService.TagService.Create(t)
 	if err != nil {
@@ -105,7 +105,7 @@ func (ct *Tag) Update(c *gin.Context) {
 		return
 	}
 
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	if f.UserId != u.Id {
 		response.Fail(c, 101, response.TranslateMsg(c, "NoAccess"))
 		return
@@ -121,7 +121,7 @@ func (ct *Tag) Update(c *gin.Context) {
 	}
 
 	t := f.ToTag()
-	if t.CollectionId > 0 && !service.AllService.AddressBookService.CheckCollectionOwner(t.UserId, t.CollectionId) {
+	if t.CollectionId > 0 && !service.AllService.CheckCollectionOwner(t.UserId, t.CollectionId) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
@@ -161,7 +161,7 @@ func (ct *Tag) Delete(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	if ex.UserId != u.Id {
 		response.Fail(c, 101, response.TranslateMsg(c, "NoAccess"))
 		return
@@ -172,5 +172,4 @@ func (ct *Tag) Delete(c *gin.Context) {
 		return
 	}
 	response.Fail(c, 101, err.Error())
-	return
 }

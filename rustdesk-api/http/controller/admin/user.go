@@ -36,7 +36,6 @@ func (ct *User) Detail(c *gin.Context) {
 		return
 	}
 	response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
-	return
 }
 
 // Create Administrator
@@ -195,7 +194,7 @@ func (ct *User) UpdatePassword(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
 	}
-	err := service.AllService.UserService.UpdatePassword(u, f.Password)
+	err := service.AllService.UpdatePassword(u, f.Password)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -214,7 +213,7 @@ func (ct *User) UpdatePassword(c *gin.Context) {
 // @Router /admin/user/current [get]
 // @Security token
 func (ct *User) Current(c *gin.Context) {
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	token, _ := c.Get("token")
 	t := token.(string)
 	responseLoginSuccess(c, u, t)
@@ -243,16 +242,16 @@ func (ct *User) ChangeCurPwd(c *gin.Context) {
 		response.Fail(c, 101, errList[0])
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	// Verify the old password only when the account already has one set
-	if !service.AllService.UserService.IsPasswordEmptyByUser(u) {
+	if !service.AllService.IsPasswordEmptyByUser(u) {
 		ok, _, err := utils.VerifyPassword(u.Password, f.OldPassword)
 		if err != nil || !ok {
 			response.Fail(c, 101, response.TranslateMsg(c, "OldPasswordError"))
 			return
 		}
 	}
-	err := service.AllService.UserService.UpdatePassword(u, f.NewPassword)
+	err := service.AllService.UpdatePassword(u, f.NewPassword)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -271,9 +270,9 @@ func (ct *User) ChangeCurPwd(c *gin.Context) {
 // @Router /admin/user/myOauth [get]
 // @Security token
 func (ct *User) MyOauth(c *gin.Context) {
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	oal := service.AllService.OauthService.List(1, 100, nil)
-	uts := service.AllService.UserService.UserThirdsByUserId(u.Id)
+	uts := service.AllService.UserThirdsByUserId(u.Id)
 	var res []*adResp.UserOauthItem
 	for _, oa := range oal.Oauths {
 		item := &adResp.UserOauthItem{
@@ -322,7 +321,7 @@ func (ct *User) Register(c *gin.Context) {
 		regStatus = model.COMMON_STATUS_ENABLE
 	}
 
-	u := service.AllService.UserService.Register(f.Username, f.Email, f.Password, regStatus)
+	u := service.AllService.Register(f.Username, f.Email, f.Password, regStatus)
 	if u == nil || u.Id == 0 {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed"))
 		return
@@ -333,7 +332,7 @@ func (ct *User) Register(c *gin.Context) {
 		return
 	}
 	// Automatically log in after successful registration
-	ut := service.AllService.UserService.Login(u, &model.LoginLog{
+	ut := service.AllService.Login(u, &model.LoginLog{
 		UserId: u.Id,
 		Client: model.LoginLogClientWebAdmin,
 		Uuid:   "",

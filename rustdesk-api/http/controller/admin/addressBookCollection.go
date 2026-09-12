@@ -28,7 +28,7 @@ type AddressBookCollection struct {
 func (abc *AddressBookCollection) Detail(c *gin.Context) {
 	id := c.Param("id")
 	iid, _ := strconv.Atoi(id)
-	t := service.AllService.AddressBookService.CollectionInfoById(uint(iid))
+	t := service.AllService.CollectionInfoById(uint(iid))
 	if t.Id > 0 {
 		response.Success(c, t)
 		return
@@ -63,7 +63,7 @@ func (abc *AddressBookCollection) Create(c *gin.Context) {
 		return
 	}
 	t := f
-	err := service.AllService.AddressBookService.CreateCollection(t)
+	err := service.AllService.CreateCollection(t)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -91,7 +91,7 @@ func (abc *AddressBookCollection) List(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	res := service.AllService.AddressBookService.ListCollection(query.Page, query.PageSize, func(tx *gorm.DB) {
+	res := service.AllService.ListCollection(query.Page, query.PageSize, func(tx *gorm.DB) {
 		if query.UserId > 0 {
 			tx.Where("user_id = ?", query.UserId)
 		}
@@ -126,7 +126,7 @@ func (abc *AddressBookCollection) Update(c *gin.Context) {
 		return
 	}
 	t := f //f.ToAddressBookCollection()
-	err := service.AllService.AddressBookService.UpdateCollection(t)
+	err := service.AllService.UpdateCollection(t)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -157,12 +157,12 @@ func (abc *AddressBookCollection) Delete(c *gin.Context) {
 		response.Fail(c, 101, errList[0])
 		return
 	}
-	ex := service.AllService.AddressBookService.CollectionInfoById(f.Id)
+	ex := service.AllService.CollectionInfoById(f.Id)
 	if ex.Id == 0 {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
 	}
-	err := service.AllService.AddressBookService.DeleteCollection(ex)
+	err := service.AllService.DeleteCollection(ex)
 	if err == nil {
 		response.Success(c, nil)
 		return

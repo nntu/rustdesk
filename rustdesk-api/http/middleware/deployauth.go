@@ -19,10 +19,10 @@ func RustOrDeployAuth() gin.HandlerFunc {
 		}
 
 		if len(global.Jwt.Key) > 0 {
-			uid, _ := service.AllService.UserService.VerifyJWT(token)
+			uid, _ := service.AllService.VerifyJWT(token)
 			if uid > 0 {
 				user := service.AllService.UserService.InfoById(uid)
-				if user.Id > 0 && service.AllService.UserService.CheckUserEnable(user) {
+				if user.Id > 0 && service.AllService.CheckUserEnable(user) {
 					c.Set("curUser", user)
 					c.Set("token", token)
 					c.Set("authType", "user")
@@ -32,12 +32,12 @@ func RustOrDeployAuth() gin.HandlerFunc {
 			}
 		}
 
-		user, ut := service.AllService.UserService.InfoByAccessToken(token)
-		if user.Id > 0 && service.AllService.UserService.CheckUserEnable(user) {
+		user, ut := service.AllService.InfoByAccessToken(token)
+		if user.Id > 0 && service.AllService.CheckUserEnable(user) {
 			c.Set("curUser", user)
 			c.Set("token", token)
 			c.Set("authType", "user")
-			service.AllService.UserService.AutoRefreshAccessToken(ut)
+			service.AllService.AutoRefreshAccessToken(ut)
 			c.Next()
 			return
 		}
@@ -45,7 +45,7 @@ func RustOrDeployAuth() gin.HandlerFunc {
 		dt, err := service.AllService.FindValid(token)
 		if err == nil && dt != nil {
 			user = service.AllService.UserService.InfoById(dt.UserId)
-			if user.Id > 0 && service.AllService.UserService.CheckUserEnable(user) {
+			if user.Id > 0 && service.AllService.CheckUserEnable(user) {
 				c.Set("curUser", user)
 				c.Set("token", token)
 				c.Set("authType", "deploy")

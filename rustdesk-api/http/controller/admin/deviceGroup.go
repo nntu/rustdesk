@@ -114,7 +114,7 @@ func (ct *DeviceGroup) Update(c *gin.Context) {
 		return
 	}
 	u := f.ToDeviceGroup()
-	err := service.AllService.GroupService.DeviceGroupUpdate(u)
+	err := service.AllService.DeviceGroupUpdate(u)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -145,9 +145,9 @@ func (ct *DeviceGroup) Delete(c *gin.Context) {
 		response.Fail(c, 101, errList[0])
 		return
 	}
-	u := service.AllService.GroupService.DeviceGroupInfoById(f.Id)
+	u := service.AllService.DeviceGroupInfoById(f.Id)
 	if u.Id > 0 {
-		err := service.AllService.GroupService.DeviceGroupDelete(u)
+		err := service.AllService.DeviceGroupDelete(u)
 		if err == nil {
 			response.Success(c, nil)
 			return

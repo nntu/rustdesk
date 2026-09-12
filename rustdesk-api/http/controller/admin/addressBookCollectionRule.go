@@ -36,7 +36,7 @@ func (abcr *AddressBookCollectionRule) List(c *gin.Context) {
 		return
 	}
 
-	res := service.AllService.AddressBookService.ListRules(query.Page, query.PageSize, func(tx *gorm.DB) {
+	res := service.AllService.ListRules(query.Page, query.PageSize, func(tx *gorm.DB) {
 		if query.UserId > 0 {
 			tx.Where("user_id = ?", query.UserId)
 		}
@@ -61,7 +61,7 @@ func (abcr *AddressBookCollectionRule) List(c *gin.Context) {
 func (abcr *AddressBookCollectionRule) Detail(c *gin.Context) {
 	id := c.Param("id")
 	iid, _ := strconv.Atoi(id)
-	t := service.AllService.AddressBookService.RuleInfoById(uint(iid))
+	t := service.AllService.RuleInfoById(uint(iid))
 	if t.Id > 0 {
 		response.Success(c, t)
 		return
@@ -101,7 +101,7 @@ func (abcr *AddressBookCollectionRule) Create(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, msg))
 		return
 	}
-	err := service.AllService.AddressBookService.CreateRule(t)
+	err := service.AllService.CreateRule(t)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -113,7 +113,7 @@ func (abcr *AddressBookCollectionRule) CheckForm(t *model.AddressBookCollectionR
 	if t.UserId == 0 {
 		return "ParamsError", false
 	}
-	if t.CollectionId > 0 && !service.AllService.AddressBookService.CheckCollectionOwner(t.UserId, t.CollectionId) {
+	if t.CollectionId > 0 && !service.AllService.CheckCollectionOwner(t.UserId, t.CollectionId) {
 		return "ParamsError", false
 	}
 
@@ -136,7 +136,7 @@ func (abcr *AddressBookCollectionRule) CheckForm(t *model.AddressBookCollectionR
 		return "ParamsError", false
 	}
 	// Repeat check
-	ex := service.AllService.AddressBookService.RuleInfoByToIdAndCid(t.Type, t.ToId, t.CollectionId)
+	ex := service.AllService.RuleInfoByToIdAndCid(t.Type, t.ToId, t.CollectionId)
 	if t.Id == 0 && ex.Id > 0 {
 		return "ItemExists", false
 	}
@@ -178,7 +178,7 @@ func (abcr *AddressBookCollectionRule) Update(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, msg))
 		return
 	}
-	err := service.AllService.AddressBookService.UpdateRule(t)
+	err := service.AllService.UpdateRule(t)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -209,12 +209,12 @@ func (abcr *AddressBookCollectionRule) Delete(c *gin.Context) {
 		response.Fail(c, 101, errList[0])
 		return
 	}
-	ex := service.AllService.AddressBookService.RuleInfoById(f.Id)
+	ex := service.AllService.RuleInfoById(f.Id)
 	if ex.Id == 0 {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
 	}
-	err := service.AllService.AddressBookService.DeleteRule(ex)
+	err := service.AllService.DeleteRule(ex)
 	if err == nil {
 		response.Success(c, nil)
 		return

@@ -31,7 +31,7 @@ func (ct *AddressBook) List(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	query.UserId = int(u.Id)
 	res := service.AllService.AddressBookService.List(query.Page, query.PageSize, func(tx *gorm.DB) {
 		//Preload address book names
@@ -79,14 +79,14 @@ func (ct *AddressBook) Create(c *gin.Context) {
 		return
 	}
 	t := f.ToAddressBook()
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	t.UserId = u.Id
-	if t.CollectionId > 0 && !service.AllService.AddressBookService.CheckCollectionOwner(t.UserId, t.CollectionId) {
+	if t.CollectionId > 0 && !service.AllService.CheckCollectionOwner(t.UserId, t.CollectionId) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
 
-	ex := service.AllService.AddressBookService.InfoByUserIdAndIdAndCid(t.UserId, t.Id, t.CollectionId)
+	ex := service.AllService.InfoByUserIdAndIdAndCid(t.UserId, t.Id, t.CollectionId)
 	if ex.RowId > 0 {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemExists"))
 		return
@@ -126,7 +126,7 @@ func (ct *AddressBook) Update(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	if f.UserId != u.Id {
 		response.Fail(c, 101, response.TranslateMsg(c, "NoAccess"))
 		return
@@ -142,11 +142,11 @@ func (ct *AddressBook) Update(c *gin.Context) {
 		return
 	}
 	t := f.ToAddressBook()
-	if t.CollectionId > 0 && !service.AllService.AddressBookService.CheckCollectionOwner(t.UserId, t.CollectionId) {
+	if t.CollectionId > 0 && !service.AllService.CheckCollectionOwner(t.UserId, t.CollectionId) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
-	err := service.AllService.AddressBookService.UpdateAll(t)
+	err := service.AllService.UpdateAll(t)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -182,7 +182,7 @@ func (ct *AddressBook) Delete(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	if ex.UserId != u.Id {
 		response.Fail(c, 101, response.TranslateMsg(c, "NoAccess"))
 		return
@@ -193,7 +193,6 @@ func (ct *AddressBook) Delete(c *gin.Context) {
 		return
 	}
 	response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
-	return
 }
 func (ct *AddressBook) BatchCreateFromPeers(c *gin.Context) {
 	f := &admin.BatchCreateFromPeersForm{}
@@ -201,10 +200,10 @@ func (ct *AddressBook) BatchCreateFromPeers(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 
 	if f.CollectionId != 0 {
-		collection := service.AllService.AddressBookService.CollectionInfoById(f.CollectionId)
+		collection := service.AllService.CollectionInfoById(f.CollectionId)
 		if collection.Id == 0 {
 			response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 			return
@@ -230,10 +229,10 @@ func (ct *AddressBook) BatchCreateFromPeers(c *gin.Context) {
 
 	tags, _ := json.Marshal(f.Tags)
 	for _, peer := range peers.Peers {
-		ab := service.AllService.AddressBookService.FromPeer(peer)
+		ab := service.AllService.FromPeer(peer)
 		ab.Tags = tags
 		ab.CollectionId = f.CollectionId
-		ex := service.AllService.AddressBookService.InfoByUserIdAndIdAndCid(u.Id, ab.Id, ab.CollectionId)
+		ex := service.AllService.InfoByUserIdAndIdAndCid(u.Id, ab.Id, ab.CollectionId)
 		if ex.RowId != 0 {
 			continue
 		}
@@ -248,7 +247,7 @@ func (ct *AddressBook) BatchUpdateTags(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 
 	abs := service.AllService.AddressBookService.List(1, 999, func(tx *gorm.DB) {
 		tx.Where("row_id in ?", f.RowIds)
@@ -258,7 +257,7 @@ func (ct *AddressBook) BatchUpdateTags(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
 	}
-	err := service.AllService.AddressBookService.BatchUpdateTags(abs.AddressBooks, f.Tags)
+	err := service.AllService.BatchUpdateTags(abs.AddressBooks, f.Tags)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return

@@ -34,7 +34,7 @@ func (g *Group) Users(c *gin.Context) {
 		response.Error(c, err.Error())
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	gr := service.AllService.GroupService.InfoById(u.GroupId)
 	userList := &model.UserList{}
 	if !*u.IsAdmin && gr.Type != model.GroupTypeShare {
@@ -42,7 +42,7 @@ func (g *Group) Users(c *gin.Context) {
 		userList.Users = append(userList.Users, u)
 		userList.Total = 1
 	} else {
-		userList = service.AllService.UserService.ListByGroupId(u.GroupId, q.Page, q.PageSize)
+		userList = service.AllService.ListByGroupId(u.GroupId, q.Page, q.PageSize)
 	}
 
 	data := make([]*apiResp.UserPayload, 0, len(userList.Users))
@@ -68,11 +68,11 @@ func (g *Group) Users(c *gin.Context) {
 // @Param status query int false "status"
 // @Param accessible query string false "accessible"
 // @Success 200 {object} response.DataResponse
-// @Failure 500 {object} response.Response
+// @Failure 500 {object} response.ErrorResponse
 // @Router /peers [get]
 // @Security BearerAuth
 func (g *Group) Peers(c *gin.Context) {
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	q := &apiReq.PeerListQuery{}
 	err := c.ShouldBindQuery(&q)
 	if err != nil {
@@ -85,7 +85,7 @@ func (g *Group) Peers(c *gin.Context) {
 		//You can only get yourself
 		users = append(users, u)
 	} else {
-		users = service.AllService.UserService.ListIdAndNameByGroupId(u.GroupId)
+		users = service.AllService.ListIdAndNameByGroupId(u.GroupId)
 	}
 
 	namesById := make(map[uint]string, len(users))
@@ -95,7 +95,7 @@ func (g *Group) Peers(c *gin.Context) {
 		userIds = append(userIds, user.Id)
 	}
 	dGroupNameById := make(map[uint]string)
-	allGroup := service.AllService.GroupService.DeviceGroupList(1, 999, nil)
+	allGroup := service.AllService.DeviceGroupList(1, 999, nil)
 	for _, group := range allGroup.DeviceGroups {
 		dGroupNameById[group.Id] = group.Name
 	}
@@ -136,12 +136,12 @@ func (g *Group) Peers(c *gin.Context) {
 // @Router /device-group/accessible [get]
 // @Security BearerAuth
 func (g *Group) Device(c *gin.Context) {
-	u := service.AllService.UserService.CurUser(c)
-	if !service.AllService.UserService.IsAdmin(u) {
+	u := service.AllService.CurUser(c)
+	if !service.AllService.IsAdmin(u) {
 		response.Error(c, "Permission denied")
 		return
 	}
-	allGroup := service.AllService.GroupService.DeviceGroupList(1, 999, nil)
+	allGroup := service.AllService.DeviceGroupList(1, 999, nil)
 
 	c.JSON(http.StatusOK, response.DataResponse{
 		Total: 0,

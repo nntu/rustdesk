@@ -38,10 +38,10 @@ func (p *Peer) SysInfo(c *gin.Context) {
 		return
 	}
 	fpe := f.ToPeer()
-	pe := service.AllService.PeerService.FindById(f.Id)
+	pe := service.AllService.FindById(f.Id)
 	if pe.RowId == 0 {
 		pe = f.ToPeer()
-		pe.UserId = service.AllService.UserService.FindLatestUserIdFromLoginLogByUuid(pe.Uuid, pe.Id)
+		pe.UserId = service.AllService.FindLatestUserIdFromLoginLogByUuid(pe.Uuid, pe.Id)
 		err = service.AllService.PeerService.Create(pe)
 		if err != nil {
 			response.Error(c, response.TranslateMsg(c, "OperationFailed")+err.Error())
@@ -49,7 +49,7 @@ func (p *Peer) SysInfo(c *gin.Context) {
 		}
 	} else {
 		if pe.UserId == 0 {
-			pe.UserId = service.AllService.UserService.FindLatestUserIdFromLoginLogByUuid(pe.Uuid, pe.Id)
+			pe.UserId = service.AllService.FindLatestUserIdFromLoginLogByUuid(pe.Uuid, pe.Id)
 		}
 		fpe.RowId = pe.RowId
 		fpe.UserId = pe.UserId
@@ -76,9 +76,9 @@ func (p *Peer) SysInfo(c *gin.Context) {
 // @Router /sysinfo_ver [post]
 func (p *Peer) SysInfoVer(c *gin.Context) {
 	//Read resources/version file
-	v := service.AllService.AppService.GetAppVersion()
+	v := service.AllService.GetAppVersion()
 	// Add the startup time to facilitate the client to upload information
-	v = fmt.Sprintf("%s\n%s", v, service.AllService.AppService.GetStartTime())
+	v = fmt.Sprintf("%s\n%s", v, service.AllService.GetStartTime())
 	c.String(http.StatusOK, v)
 }
 
@@ -95,13 +95,13 @@ func (p *Peer) Deploy(c *gin.Context) {
 		return
 	}
 
-	currentUser := service.AllService.UserService.CurUser(c)
+	currentUser := service.AllService.CurUser(c)
 	if currentUser == nil || currentUser.Id == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Chưa xác thực"})
 		return
 	}
 
-	pe := service.AllService.PeerService.FindById(form.Id)
+	pe := service.AllService.FindById(form.Id)
 	if pe.RowId > 0 {
 		if pe.UserId != 0 && pe.UserId != currentUser.Id {
 			c.JSON(http.StatusOK, gin.H{"result": "ID_TAKEN"})
@@ -162,13 +162,13 @@ func (p *Peer) Cli(c *gin.Context) {
 		return
 	}
 
-	currentUser := service.AllService.UserService.CurUser(c)
+	currentUser := service.AllService.CurUser(c)
 	if currentUser == nil || currentUser.Id == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Chưa xác thực"})
 		return
 	}
 
-	pe := service.AllService.PeerService.FindById(form.Id)
+	pe := service.AllService.FindById(form.Id)
 	if pe.RowId == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Không tìm thấy thiết bị"})
 		return
@@ -224,7 +224,7 @@ func (p *Peer) Cli(c *gin.Context) {
 			}
 		}
 
-		ab := service.AllService.AddressBookService.InfoByUserIdAndIdAndCid(currentUser.Id, form.Id, collection.Id)
+		ab := service.AllService.InfoByUserIdAndIdAndCid(currentUser.Id, form.Id, collection.Id)
 		var tags custom_types.AutoJson
 		if form.AddressBookTag != "" {
 			tagsList := strings.Split(form.AddressBookTag, ",")
@@ -262,7 +262,7 @@ func (p *Peer) Cli(c *gin.Context) {
 				Hostname:     form.DeviceName,
 				LoginName:    deployNote,
 			}
-			err = service.AllService.AddressBookService.AddAddressBook(newPeerAddressBook(newAb, pe))
+			err = service.AllService.AddAddressBook(newPeerAddressBook(newAb, pe))
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Không thể tạo mục sổ địa chỉ: " + err.Error()})
 				return
@@ -303,6 +303,6 @@ func newPeerAddressBook(ab *model.AddressBook, pe *model.Peer) *model.AddressBoo
 	if ab.Hostname == "" {
 		ab.Hostname = pe.Hostname
 	}
-	ab.Platform = service.AllService.AddressBookService.PlatformFromOs(pe.Os)
+	ab.Platform = service.AllService.PlatformFromOs(pe.Os)
 	return ab
 }

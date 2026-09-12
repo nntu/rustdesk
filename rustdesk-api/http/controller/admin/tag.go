@@ -28,8 +28,8 @@ func (ct *Tag) Detail(c *gin.Context) {
 	id := c.Param("id")
 	iid, _ := strconv.Atoi(id)
 	t := service.AllService.TagService.InfoById(uint(iid))
-	u := service.AllService.UserService.CurUser(c)
-	if !service.AllService.UserService.IsAdmin(u) && t.UserId != u.Id {
+	u := service.AllService.CurUser(c)
+	if !service.AllService.IsAdmin(u) && t.UserId != u.Id {
 		response.Fail(c, 101, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
@@ -38,7 +38,6 @@ func (ct *Tag) Detail(c *gin.Context) {
 		return
 	}
 	response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
-	return
 }
 
 // Create Create a label

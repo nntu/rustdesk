@@ -64,12 +64,12 @@ func (ct *AddressBook) Create(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
-	if t.CollectionId > 0 && !service.AllService.AddressBookService.CheckCollectionOwner(t.UserId, t.CollectionId) {
+	if t.CollectionId > 0 && !service.AllService.CheckCollectionOwner(t.UserId, t.CollectionId) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
 
-	ex := service.AllService.AddressBookService.InfoByUserIdAndIdAndCid(t.UserId, t.Id, t.CollectionId)
+	ex := service.AllService.InfoByUserIdAndIdAndCid(t.UserId, t.Id, t.CollectionId)
 	if ex.RowId > 0 {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemExists"))
 		return
@@ -138,7 +138,7 @@ func (ct *AddressBook) BatchCreate(c *gin.Context) {
 		if t.UserId == 0 {
 			continue
 		}
-		ex := service.AllService.AddressBookService.InfoByUserIdAndIdAndCid(t.UserId, t.Id, t.CollectionId)
+		ex := service.AllService.InfoByUserIdAndIdAndCid(t.UserId, t.Id, t.CollectionId)
 		if ex.RowId == 0 {
 			_ = service.AllService.AddressBookService.Create(t)
 		}
@@ -224,11 +224,11 @@ func (ct *AddressBook) Update(c *gin.Context) {
 		return
 	}
 	t := f.ToAddressBook()
-	if t.CollectionId > 0 && !service.AllService.AddressBookService.CheckCollectionOwner(t.UserId, t.CollectionId) {
+	if t.CollectionId > 0 && !service.AllService.CheckCollectionOwner(t.UserId, t.CollectionId) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
-	err := service.AllService.AddressBookService.UpdateAll(t)
+	err := service.AllService.UpdateAll(t)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -295,15 +295,15 @@ func (ct *AddressBook) ShareByWebClient(c *gin.Context) {
 		return
 	}
 
-	u := service.AllService.UserService.CurUser(c)
-	ab := service.AllService.AddressBookService.InfoByUserIdAndId(u.Id, f.Id)
+	u := service.AllService.CurUser(c)
+	ab := service.AllService.InfoByUserIdAndId(u.Id, f.Id)
 	if ab.RowId == 0 {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
 	}
 	m := f.ToShareRecord()
 	m.UserId = u.Id
-	err := service.AllService.AddressBookService.ShareByWebClient(m)
+	err := service.AllService.ShareByWebClient(m)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -326,7 +326,7 @@ func (ct *AddressBook) BatchCreateFromPeers(c *gin.Context) {
 	}
 
 	if f.CollectionId != 0 {
-		collection := service.AllService.AddressBookService.CollectionInfoById(f.CollectionId)
+		collection := service.AllService.CollectionInfoById(f.CollectionId)
 		if collection.Id == 0 {
 			response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 			return
@@ -344,11 +344,11 @@ func (ct *AddressBook) BatchCreateFromPeers(c *gin.Context) {
 
 	tags, _ := json.Marshal(f.Tags)
 	for _, peer := range peers.Peers {
-		ab := service.AllService.AddressBookService.FromPeer(peer)
+		ab := service.AllService.FromPeer(peer)
 		ab.Tags = tags
 		ab.CollectionId = f.CollectionId
 		ab.UserId = f.UserId
-		ex := service.AllService.AddressBookService.InfoByUserIdAndIdAndCid(f.UserId, ab.Id, ab.CollectionId)
+		ex := service.AllService.InfoByUserIdAndIdAndCid(f.UserId, ab.Id, ab.CollectionId)
 		if ex.RowId != 0 {
 			continue
 		}

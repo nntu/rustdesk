@@ -26,7 +26,7 @@ type revokeDeployTokenForm struct {
 
 // CreateToken issues a short-lived deploy token for automated client setup.
 func (ct *Deploy) CreateToken(c *gin.Context) {
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	if u == nil || u.Id == 0 {
 		response.Fail(c, 403, response.TranslateMsg(c, "NeedLogin"))
 		return
@@ -84,7 +84,7 @@ func (ct *Deploy) CreateToken(c *gin.Context) {
 
 // ListTokens returns deploy tokens for the current user (masked, for monitoring).
 func (ct *Deploy) ListTokens(c *gin.Context) {
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	if u == nil || u.Id == 0 {
 		response.Fail(c, 403, response.TranslateMsg(c, "NeedLogin"))
 		return
@@ -109,7 +109,7 @@ func (ct *Deploy) ListTokens(c *gin.Context) {
 
 // RevokeToken force-revokes an active deploy token.
 func (ct *Deploy) RevokeToken(c *gin.Context) {
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	if u == nil || u.Id == 0 {
 		response.Fail(c, 403, response.TranslateMsg(c, "NeedLogin"))
 		return
@@ -125,7 +125,7 @@ func (ct *Deploy) RevokeToken(c *gin.Context) {
 		return
 	}
 
-	if err := service.AllService.DeployTokenService.RevokeById(form.Id, u.Id); err != nil {
+	if err := service.AllService.RevokeById(form.Id, u.Id); err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
 	}

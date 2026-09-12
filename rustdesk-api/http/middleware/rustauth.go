@@ -33,7 +33,7 @@ func RustAuth() gin.HandlerFunc {
 
 		//Check if jwt key is set
 		if len(global.Jwt.Key) > 0 {
-			uid, _ := service.AllService.UserService.VerifyJWT(token)
+			uid, _ := service.AllService.VerifyJWT(token)
 			if uid == 0 {
 				c.JSON(401, gin.H{
 					"error": "Unauthorized",
@@ -43,7 +43,7 @@ func RustAuth() gin.HandlerFunc {
 			}
 		}
 
-		user, ut := service.AllService.UserService.InfoByAccessToken(token)
+		user, ut := service.AllService.InfoByAccessToken(token)
 		if user.Id == 0 {
 			c.JSON(401, gin.H{
 				"error": "Unauthorized",
@@ -51,7 +51,7 @@ func RustAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		if !service.AllService.UserService.CheckUserEnable(user) {
+		if !service.AllService.CheckUserEnable(user) {
 			c.JSON(401, gin.H{
 				"error": "Unauthorized",
 			})
@@ -62,7 +62,7 @@ func RustAuth() gin.HandlerFunc {
 		c.Set("curUser", user)
 		c.Set("token", token)
 
-		service.AllService.UserService.AutoRefreshAccessToken(ut)
+		service.AllService.AutoRefreshAccessToken(ut)
 
 		c.Next()
 	}

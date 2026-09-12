@@ -38,7 +38,7 @@ func JwtAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		if !service.AllService.UserService.CheckUserEnable(user) {
+		if !service.AllService.CheckUserEnable(user) {
 			response.Fail(c, 101, response.TranslateMsg(c, "Banned"))
 			c.Abort()
 			return

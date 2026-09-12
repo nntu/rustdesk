@@ -42,7 +42,7 @@ func (o *Oauth) OidcAuth(c *gin.Context) {
 		return
 	}
 
-	service.AllService.OauthService.SetOauthCache(state, &service.OauthCacheItem{
+	service.AllService.SetOauthCache(state, &service.OauthCacheItem{
 		Action:     service.OauthActionTypeLogin,
 		ApiDomain:  f.ApiDomain,
 		Id:         f.Id,
@@ -73,7 +73,7 @@ func (o *Oauth) OidcAuthQueryPre(c *gin.Context) (*model.User, *model.UserToken)
 	}
 
 	// Get OAuth cache
-	v := service.AllService.OauthService.GetOauthCache(q.Code)
+	v := service.AllService.GetOauthCache(q.Code)
 	if v == nil {
 		response.Error(c, response.TranslateMsg(c, "OauthExpired"))
 		return nil, nil
@@ -94,10 +94,10 @@ func (o *Oauth) OidcAuthQueryPre(c *gin.Context) (*model.User, *model.UserToken)
 	}
 
 	// Delete OAuth cache
-	service.AllService.OauthService.DeleteOauthCache(q.Code)
+	service.AllService.DeleteOauthCache(q.Code)
 
 	// Create login log and generate user token
-	ut = service.AllService.UserService.Login(u, &model.LoginLog{
+	ut = service.AllService.Login(u, &model.LoginLog{
 		UserId:   u.Id,
 		Client:   v.DeviceType,
 		DeviceId: v.Id,
@@ -223,7 +223,7 @@ func (o *Oauth) OauthCallback(c *gin.Context) {
 			})
 			return
 		}
-		user = service.AllService.UserService.InfoByOauthId(op, openid)
+		user = service.AllService.InfoByOauthId(op, openid)
 		if user == nil {
 			oauthConfig := oauthService.InfoByOp(op)
 			if !*oauthConfig.AutoRegister {
@@ -234,7 +234,7 @@ func (o *Oauth) OauthCallback(c *gin.Context) {
 			}
 
 			//Automatic registration
-			user, err = service.AllService.UserService.RegisterByOauth(oauthUser, op)
+			user, err = service.AllService.RegisterByOauth(oauthUser, op)
 			if err != nil {
 				c.HTML(http.StatusOK, "oauth_fail.html", gin.H{
 					"message": err.Error(),

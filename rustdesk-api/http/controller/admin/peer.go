@@ -34,7 +34,6 @@ func (ct *Peer) Detail(c *gin.Context) {
 		return
 	}
 	response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
-	return
 }
 
 // Create Create device
@@ -261,12 +260,12 @@ func (ct *Peer) SetPassword(c *gin.Context) {
 		response.Fail(c, 101, errList[0])
 		return
 	}
-	peer := service.AllService.PeerService.FindById(f.Id)
+	peer := service.AllService.FindById(f.Id)
 	if peer.RowId == 0 {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
 	}
-	err := service.AllService.AddressBookService.UpdatePasswordByPeerId(f.Id, f.Password)
+	err := service.AllService.UpdatePasswordByPeerId(f.Id, f.Password)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return

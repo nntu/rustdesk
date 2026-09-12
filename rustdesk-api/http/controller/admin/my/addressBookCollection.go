@@ -35,9 +35,9 @@ func (abc *AddressBookCollection) Create(c *gin.Context) {
 		response.Fail(c, 101, errList[0])
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	f.UserId = u.Id
-	err := service.AllService.AddressBookService.CreateCollection(f)
+	err := service.AllService.CreateCollection(f)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -63,9 +63,9 @@ func (abc *AddressBookCollection) List(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	query.UserId = int(u.Id)
-	res := service.AllService.AddressBookService.ListCollection(query.Page, query.PageSize, func(tx *gorm.DB) {
+	res := service.AllService.ListCollection(query.Page, query.PageSize, func(tx *gorm.DB) {
 		tx.Where("user_id = ?", query.UserId)
 	})
 	response.Success(c, res)
@@ -97,12 +97,12 @@ func (abc *AddressBookCollection) Update(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	//if f.UserId != u.Id {
 	//	response.Fail(c, 101, response.TranslateMsg(c, "NoAccess"))
 	//	return
 	//}
-	ex := service.AllService.AddressBookService.CollectionInfoById(f.Id)
+	ex := service.AllService.CollectionInfoById(f.Id)
 	if ex.Id == 0 {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
@@ -112,7 +112,7 @@ func (abc *AddressBookCollection) Update(c *gin.Context) {
 		return
 	}
 
-	err := service.AllService.AddressBookService.UpdateCollection(f)
+	err := service.AllService.UpdateCollection(f)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -143,17 +143,17 @@ func (abc *AddressBookCollection) Delete(c *gin.Context) {
 		response.Fail(c, 101, errList[0])
 		return
 	}
-	ex := service.AllService.AddressBookService.CollectionInfoById(f.Id)
+	ex := service.AllService.CollectionInfoById(f.Id)
 	if ex.Id == 0 {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	if ex.UserId != u.Id {
 		response.Fail(c, 101, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
-	err := service.AllService.AddressBookService.DeleteCollection(ex)
+	err := service.AllService.DeleteCollection(ex)
 	if err == nil {
 		response.Success(c, nil)
 		return

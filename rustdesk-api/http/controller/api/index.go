@@ -87,7 +87,7 @@ func (i *Index) Heartbeat(c *gin.Context) {
 		return
 	}
 
-	peer := service.AllService.PeerService.FindById(info.Id)
+	peer := service.AllService.FindById(info.Id)
 	if peer != nil && peer.RowId != 0 {
 		upp := &model.Peer{RowId: peer.RowId, LastOnlineTime: now, LastOnlineIp: clientIp}
 		_ = service.AllService.PeerService.Update(upp)
@@ -113,7 +113,7 @@ func (i *Index) Heartbeat(c *gin.Context) {
 // @Router /version [get]
 func (i *Index) Version(c *gin.Context) {
 	//Read resources/version file
-	v := service.AllService.AppService.GetAppVersion()
+	v := service.AllService.GetAppVersion()
 	response.Success(
 		c,
 		v,
@@ -127,7 +127,7 @@ func (i *Index) DeployPowershell(c *gin.Context) {
 		c.String(http.StatusBadRequest, "deploy_token is required")
 		return
 	}
-	dt, err := service.AllService.DeployTokenService.FindValid(deployToken)
+	dt, err := service.AllService.FindValid(deployToken)
 	if err != nil {
 		c.String(http.StatusUnauthorized, "invalid or expired deploy token")
 		return
@@ -187,7 +187,7 @@ func (i *Index) DeployClientLogin(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Deploy token required"})
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	if u == nil || u.Id == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
@@ -196,7 +196,7 @@ func (i *Index) DeployClientLogin(c *gin.Context) {
 	form := &deployClientLoginForm{}
 	_ = c.ShouldBindJSON(form)
 
-	ut := service.AllService.UserService.Login(u, &model.LoginLog{
+	ut := service.AllService.Login(u, &model.LoginLog{
 		UserId:   u.Id,
 		Client:   model.LoginLogClientApp,
 		DeviceId: strings.TrimSpace(form.Id),
@@ -225,7 +225,7 @@ func (i *Index) DeployRevoke(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{})
 		return
 	}
-	_ = service.AllService.DeployTokenService.Consume(token.(string))
+	_ = service.AllService.Consume(token.(string))
 	c.JSON(http.StatusOK, gin.H{})
 }
 

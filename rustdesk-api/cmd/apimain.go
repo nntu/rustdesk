@@ -61,7 +61,7 @@ var resetPwdCmd = &cobra.Command{
 			global.Logger.Warn("user not found! ")
 			return
 		}
-		err := service.AllService.UserService.UpdatePassword(admin, pwd)
+		err := service.AllService.UpdatePassword(admin, pwd)
 		if err != nil {
 			global.Logger.Error("reset password fail! ", err)
 			return
@@ -91,7 +91,7 @@ var resetUserPwdCmd = &cobra.Command{
 			global.Logger.Warn("user not found! ")
 			return
 		}
-		err = service.AllService.UserService.UpdatePassword(u, pwd)
+		err = service.AllService.UpdatePassword(u, pwd)
 		if err != nil {
 			global.Logger.Warn("reset password fail! ", err)
 			return

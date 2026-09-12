@@ -103,7 +103,7 @@ func (a *Audit) BatchConnDelete(c *gin.Context) {
 		return
 	}
 
-	err := service.AllService.AuditService.BatchDeleteAuditConn(f.Ids)
+	err := service.AllService.BatchDeleteAuditConn(f.Ids)
 	if err == nil {
 		response.Success(c, nil)
 		return
@@ -131,7 +131,7 @@ func (a *Audit) FileList(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	res := service.AllService.AuditService.AuditFileList(query.Page, query.PageSize, func(tx *gorm.DB) {
+	res := service.AllService.AuditFileList(query.Page, query.PageSize, func(tx *gorm.DB) {
 		if query.PeerId != "" {
 			tx.Where("peer_id like ?", "%"+query.PeerId+"%")
 		}
@@ -166,9 +166,9 @@ func (a *Audit) FileDelete(c *gin.Context) {
 		response.Fail(c, 101, errList[0])
 		return
 	}
-	l := service.AllService.AuditService.FileInfoById(f.Id)
+	l := service.AllService.FileInfoById(f.Id)
 	if l.Id > 0 {
-		err := service.AllService.AuditService.DeleteAuditFile(l)
+		err := service.AllService.DeleteAuditFile(l)
 		if err == nil {
 			response.Success(c, nil)
 			return
@@ -201,11 +201,10 @@ func (a *Audit) BatchFileDelete(c *gin.Context) {
 		return
 	}
 
-	err := service.AllService.AuditService.BatchDeleteAuditFile(f.Ids)
+	err := service.AllService.BatchDeleteAuditFile(f.Ids)
 	if err == nil {
 		response.Success(c, nil)
 		return
 	}
 	response.Fail(c, 101, err.Error())
-	return
 }

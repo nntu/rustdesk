@@ -9,9 +9,9 @@ import (
 // AdminPrivilege ...
 func AdminPrivilege() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		u := service.AllService.UserService.CurUser(c)
+		u := service.AllService.CurUser(c)
 
-		if !service.AllService.UserService.IsAdmin(u) {
+		if !service.AllService.IsAdmin(u) {
 			response.Fail(c, 403, response.TranslateMsg(c, "NoAccess"))
 			c.Abort()
 			return

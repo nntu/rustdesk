@@ -20,7 +20,7 @@ func (o *Oauth) Info(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
-	v := service.AllService.OauthService.GetOauthCache(code)
+	v := service.AllService.GetOauthCache(code)
 	if v == nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
@@ -29,13 +29,13 @@ func (o *Oauth) Info(c *gin.Context) {
 }
 
 func (o *Oauth) ToBind(c *gin.Context) {
-	f := &adminReq.BindOauthForm{}
+	f := &admin.BindOauthForm{}
 	err := c.ShouldBindJSON(f)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 
 	utr := service.AllService.UserService.UserThirdInfo(u.Id, f.Op)
 	if utr.Id > 0 {
@@ -43,13 +43,13 @@ func (o *Oauth) ToBind(c *gin.Context) {
 		return
 	}
 
-	state, verifier, nonce, url, err := service.AllService.OauthService.BeginAuth(f.Op, "")
+	state, verifier, nonce, url, err := service.AllService.BeginAuth(f.Op, "")
 	if err != nil {
 		response.Error(c, response.TranslateMsg(c, err.Error()))
 		return
 	}
 
-	service.AllService.OauthService.SetOauthCache(state, &service.OauthCacheItem{
+	service.AllService.SetOauthCache(state, &service.OauthCacheItem{
 		Action:   service.OauthActionTypeBind,
 		Op:       f.Op,
 		UserId:   u.Id,
@@ -65,7 +65,7 @@ func (o *Oauth) ToBind(c *gin.Context) {
 
 // Confirm Confirm authorized login
 func (o *Oauth) Confirm(c *gin.Context) {
-	j := &adminReq.OauthConfirmForm{}
+	j := &admin.OauthConfirmForm{}
 	err := c.ShouldBindJSON(j)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
@@ -75,19 +75,19 @@ func (o *Oauth) Confirm(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
-	v := service.AllService.OauthService.GetOauthCache(j.Code)
+	v := service.AllService.GetOauthCache(j.Code)
 	if v == nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OauthExpired"))
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	v.UserId = u.Id
-	service.AllService.OauthService.SetOauthCache(j.Code, v, 0)
+	service.AllService.SetOauthCache(j.Code, v, 0)
 	response.Success(c, v)
 }
 
 func (o *Oauth) BindConfirm(c *gin.Context) {
-	j := &adminReq.OauthConfirmForm{}
+	j := &admin.OauthConfirmForm{}
 	err := c.ShouldBindJSON(j)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
@@ -104,7 +104,7 @@ func (o *Oauth) BindConfirm(c *gin.Context) {
 		return
 	}
 	oauthUser := oauthCache.ToOauthUser()
-	user := service.AllService.UserService.CurUser(c)
+	user := service.AllService.CurUser(c)
 	err = oauthService.BindOauthUser(user.Id, oauthUser, oauthCache.Op)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "BindFail"))
@@ -117,19 +117,19 @@ func (o *Oauth) BindConfirm(c *gin.Context) {
 }
 
 func (o *Oauth) Unbind(c *gin.Context) {
-	f := &adminReq.UnBindOauthForm{}
+	f := &admin.UnBindOauthForm{}
 	err := c.ShouldBindJSON(f)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	utr := service.AllService.UserService.UserThirdInfo(u.Id, f.Op)
 	if utr.Id == 0 {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
 	}
-	err = service.AllService.OauthService.UnBindOauthUser(u.Id, f.Op)
+	err = service.AllService.UnBindOauthUser(u.Id, f.Op)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -157,7 +157,6 @@ func (o *Oauth) Detail(c *gin.Context) {
 		return
 	}
 	response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
-	return
 }
 
 // Create Create Oauth
@@ -188,7 +187,7 @@ func (o *Oauth) Create(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	ex := service.AllService.OauthService.InfoByOp(u.Op)
+	ex := service.AllService.InfoByOp(u.Op)
 	if ex.Id > 0 {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemExists"))
 		return

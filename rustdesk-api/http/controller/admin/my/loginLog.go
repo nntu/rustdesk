@@ -32,7 +32,7 @@ func (ct *LoginLog) List(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	res := service.AllService.LoginLogService.List(query.Page, query.PageSize, func(tx *gorm.DB) {
 		tx.Where("user_id = ? and is_deleted = ?", u.Id, model.IsDeletedNo)
 		tx.Order("id desc")
@@ -68,12 +68,12 @@ func (ct *LoginLog) Delete(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	if l.UserId != u.Id {
 		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 		return
 	}
-	err := service.AllService.LoginLogService.SoftDelete(l)
+	err := service.AllService.SoftDelete(l)
 	if err == nil {
 		response.Success(c, nil)
 		return
@@ -102,12 +102,11 @@ func (ct *LoginLog) BatchDelete(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
-	err := service.AllService.LoginLogService.BatchSoftDelete(u.Id, f.Ids)
+	u := service.AllService.CurUser(c)
+	err := service.AllService.BatchSoftDelete(u.Id, f.Ids)
 	if err == nil {
 		response.Success(c, nil)
 		return
 	}
 	response.Fail(c, 101, err.Error())
-	return
 }

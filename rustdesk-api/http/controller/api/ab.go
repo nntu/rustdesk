@@ -30,7 +30,7 @@ type Ab struct {
 // @Router /ab [get]
 // @Security BearerAuth
 func (a *Ab) Ab(c *gin.Context) {
-	user := service.AllService.UserService.CurUser(c)
+	user := service.AllService.CurUser(c)
 
 	al := service.AllService.AddressBookService.ListByUserIdAndCollectionId(user.Id, 0, 1, 1000)
 	tags := service.AllService.TagService.ListByUserIdAndCollectionId(user.Id, 0)
@@ -85,15 +85,15 @@ func (a *Ab) UpAb(c *gin.Context) {
 		response.Error(c, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	user := service.AllService.UserService.CurUser(c)
+	user := service.AllService.CurUser(c)
 
-	err = service.AllService.AddressBookService.UpdateAddressBook(abd.Peers, user.Id)
+	err = service.AllService.UpdateAddressBook(abd.Peers, user.Id)
 	if err != nil {
 		response.Error(c, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
 	}
 
-	service.AllService.TagService.UpdateTags(user.Id, tc)
+	service.AllService.UpdateTags(user.Id, tc)
 
 	c.JSON(http.StatusOK, nil)
 }
@@ -110,7 +110,7 @@ func (a *Ab) UpAb(c *gin.Context) {
 // @Router /ab/tags/{guid} [post]
 // @Security BearerAuth
 func (a *Ab) PTags(c *gin.Context) {
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	guid := c.Param("guid")
 	_, uid, cid, err := a.CheckGuid(u, guid)
 	if err != nil {
@@ -119,7 +119,7 @@ func (a *Ab) PTags(c *gin.Context) {
 	}
 
 	//check privileges
-	if !service.AllService.AddressBookService.CheckUserReadPrivilege(u, uid, cid) {
+	if !service.AllService.CheckUserReadPrivilege(u, uid, cid) {
 		response.Error(c, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
@@ -147,7 +147,7 @@ func (a *Ab) TagAdd(c *gin.Context) {
 		return
 	}
 
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	guid := c.Param("guid")
 	_, uid, cid, err := a.CheckGuid(u, guid)
 	if err != nil {
@@ -156,12 +156,12 @@ func (a *Ab) TagAdd(c *gin.Context) {
 	}
 
 	//check privileges
-	if !service.AllService.AddressBookService.CheckUserWritePrivilege(u, uid, cid) {
+	if !service.AllService.CheckUserWritePrivilege(u, uid, cid) {
 		response.Error(c, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
 
-	tag := service.AllService.TagService.InfoByUserIdAndNameAndCollectionId(uid, t.Name, cid)
+	tag := service.AllService.InfoByUserIdAndNameAndCollectionId(uid, t.Name, cid)
 	if tag != nil && tag.Id != 0 {
 		response.Error(c, response.TranslateMsg(c, "ItemExists"))
 		return
@@ -195,7 +195,7 @@ func (a *Ab) TagRename(c *gin.Context) {
 		response.Error(c, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	guid := c.Param("guid")
 	_, uid, cid, err := a.CheckGuid(u, guid)
 	if err != nil {
@@ -204,17 +204,17 @@ func (a *Ab) TagRename(c *gin.Context) {
 	}
 
 	//check privileges
-	if !service.AllService.AddressBookService.CheckUserWritePrivilege(u, uid, cid) {
+	if !service.AllService.CheckUserWritePrivilege(u, uid, cid) {
 		response.Error(c, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
 
-	tag := service.AllService.TagService.InfoByUserIdAndNameAndCollectionId(uid, t.Old, cid)
+	tag := service.AllService.InfoByUserIdAndNameAndCollectionId(uid, t.Old, cid)
 	if tag == nil || tag.Id == 0 {
 		response.Error(c, response.TranslateMsg(c, "ItemNotFound"))
 		return
 	}
-	ntag := service.AllService.TagService.InfoByUserIdAndNameAndCollectionId(uid, t.New, cid)
+	ntag := service.AllService.InfoByUserIdAndNameAndCollectionId(uid, t.New, cid)
 	if ntag != nil && ntag.Id != 0 {
 		response.Error(c, response.TranslateMsg(c, "ItemExists"))
 		return
@@ -246,7 +246,7 @@ func (a *Ab) TagUpdate(c *gin.Context) {
 		response.Error(c, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	guid := c.Param("guid")
 	_, uid, cid, err := a.CheckGuid(u, guid)
 	if err != nil {
@@ -255,12 +255,12 @@ func (a *Ab) TagUpdate(c *gin.Context) {
 	}
 
 	//check privileges
-	if !service.AllService.AddressBookService.CheckUserWritePrivilege(u, uid, cid) {
+	if !service.AllService.CheckUserWritePrivilege(u, uid, cid) {
 		response.Error(c, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
 
-	tag := service.AllService.TagService.InfoByUserIdAndNameAndCollectionId(uid, t.Name, cid)
+	tag := service.AllService.InfoByUserIdAndNameAndCollectionId(uid, t.Name, cid)
 	if tag == nil || tag.Id == 0 {
 		response.Error(c, response.TranslateMsg(c, "ItemNotFound"))
 		return
@@ -294,7 +294,7 @@ func (a *Ab) TagDel(c *gin.Context) {
 		return
 	}
 	//fmt.Println(t)
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	guid := c.Param("guid")
 	_, uid, cid, err := a.CheckGuid(u, guid)
 	if err != nil {
@@ -303,13 +303,13 @@ func (a *Ab) TagDel(c *gin.Context) {
 	}
 
 	//check privileges
-	if !service.AllService.AddressBookService.CheckUserFullControlPrivilege(u, uid, cid) {
+	if !service.AllService.CheckUserFullControlPrivilege(u, uid, cid) {
 		response.Error(c, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
 
 	for _, name := range *t {
-		tag := service.AllService.TagService.InfoByUserIdAndNameAndCollectionId(uid, name, cid)
+		tag := service.AllService.InfoByUserIdAndNameAndCollectionId(uid, name, cid)
 		if tag == nil || tag.Id == 0 {
 			response.Error(c, response.TranslateMsg(c, "ItemNotFound"))
 			return
@@ -335,7 +335,7 @@ func (a *Ab) TagDel(c *gin.Context) {
 // @Router /ab/personal [post]
 // @Security BearerAuth
 func (a *Ab) Personal(c *gin.Context) {
-	user := service.AllService.UserService.CurUser(c)
+	user := service.AllService.CurUser(c)
 	/**
 	guid = json['guid'] ?? '',
 	       name = json['name'] ?? '',
@@ -390,8 +390,8 @@ func (a *Ab) SharedProfiles(c *gin.Context) {
 
 	var res []*api.SharedProfilesPayload
 
-	user := service.AllService.UserService.CurUser(c)
-	myAbCollectionList := service.AllService.AddressBookService.ListCollectionByUserId(user.Id)
+	user := service.AllService.CurUser(c)
+	myAbCollectionList := service.AllService.ListCollectionByUserId(user.Id)
 	for _, ab := range myAbCollectionList.AddressBookCollection {
 		res = append(res, &api.SharedProfilesPayload{
 			Guid:  a.ComposeGuid(user.GroupId, user.Id, ab.Id),
@@ -403,7 +403,7 @@ func (a *Ab) SharedProfiles(c *gin.Context) {
 
 	allAbIds := make(map[uint]int) //Use map to remove duplicates and retain the largest Rule
 	allUserIds := make(map[uint]*model.User)
-	rules := service.AllService.AddressBookService.CollectionReadRules(user)
+	rules := service.AllService.CollectionReadRules(user)
 	for _, rule := range rules {
 		//First determine whether it exists
 		r, ok := allAbIds[rule.CollectionId]
@@ -419,10 +419,10 @@ func (a *Ab) SharedProfiles(c *gin.Context) {
 
 	}
 	abids := utils.Keys(allAbIds)
-	collections := service.AllService.AddressBookService.ListCollectionByIds(abids)
+	collections := service.AllService.ListCollectionByIds(abids)
 
 	ids := utils.Keys(allUserIds)
-	allUsers := service.AllService.UserService.ListByIds(ids)
+	allUsers := service.AllService.ListByIds(ids)
 	for _, u := range allUsers {
 		allUserIds[u.Id] = u
 	}
@@ -507,7 +507,7 @@ func (a *Ab) CheckGuid(cu *model.User, guid string) (gid, uid, cid uint, err err
 		return
 	}
 	if cid > 0 {
-		c := service.AllService.AddressBookService.CollectionInfoById(cid)
+		c := service.AllService.CollectionInfoById(cid)
 		if c == nil || c.Id == 0 {
 			err = errors.New("ParamsError")
 			return
@@ -534,7 +534,7 @@ func (a *Ab) CheckGuid(cu *model.User, guid string) (gid, uid, cid uint, err err
 // @Router /ab/peers [post]
 // @Security BearerAuth
 func (a *Ab) Peers(c *gin.Context) {
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	guid := c.Query("ab")
 	_, uid, cid, err := a.CheckGuid(u, guid)
 	if err != nil {
@@ -543,7 +543,7 @@ func (a *Ab) Peers(c *gin.Context) {
 	}
 
 	//check privileges
-	if !service.AllService.AddressBookService.CheckUserReadPrivilege(u, uid, cid) {
+	if !service.AllService.CheckUserReadPrivilege(u, uid, cid) {
 		response.Error(c, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
@@ -577,7 +577,7 @@ func (a *Ab) PeerAdd(c *gin.Context) {
 		return
 	}
 
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	guid := c.Param("guid")
 	_, uid, cid, err := a.CheckGuid(u, guid)
 	if err != nil {
@@ -586,7 +586,7 @@ func (a *Ab) PeerAdd(c *gin.Context) {
 	}
 
 	//check privileges
-	if !service.AllService.AddressBookService.CheckUserWritePrivilege(u, uid, cid) {
+	if !service.AllService.CheckUserWritePrivilege(u, uid, cid) {
 		response.Error(c, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
@@ -596,15 +596,15 @@ func (a *Ab) PeerAdd(c *gin.Context) {
 	ab := f.ToAddressBook()
 	ab.CollectionId = cid
 	if ab.Platform == "" || ab.Username == "" || ab.Hostname == "" {
-		peer := service.AllService.PeerService.FindById(ab.Id)
+		peer := service.AllService.FindById(ab.Id)
 		if peer.RowId != 0 {
-			ab.Platform = service.AllService.AddressBookService.PlatformFromOs(peer.Os)
+			ab.Platform = service.AllService.PlatformFromOs(peer.Os)
 			ab.Username = peer.Username
 			ab.Hostname = peer.Hostname
 		}
 	}
 
-	err = service.AllService.AddressBookService.AddAddressBook(ab)
+	err = service.AllService.AddAddressBook(ab)
 	if err != nil {
 		response.Error(c, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -630,7 +630,7 @@ func (a *Ab) PeerDel(c *gin.Context) {
 		response.Error(c, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	guid := c.Param("guid")
 	_, uid, cid, err := a.CheckGuid(u, guid)
 	if err != nil {
@@ -639,13 +639,13 @@ func (a *Ab) PeerDel(c *gin.Context) {
 	}
 
 	//check privileges
-	if !service.AllService.AddressBookService.CheckUserFullControlPrivilege(u, uid, cid) {
+	if !service.AllService.CheckUserFullControlPrivilege(u, uid, cid) {
 		response.Error(c, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
 
 	for _, id := range *f {
-		ab := service.AllService.AddressBookService.InfoByUserIdAndIdAndCid(uid, id, cid)
+		ab := service.AllService.InfoByUserIdAndIdAndCid(uid, id, cid)
 		if ab == nil || ab.RowId == 0 {
 			response.Error(c, response.TranslateMsg(c, "ItemNotFound"))
 			return
@@ -679,7 +679,7 @@ func (a *Ab) PeerUpdate(c *gin.Context) {
 		response.Error(c, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	guid := c.Param("guid")
 	_, uid, cid, err := a.CheckGuid(u, guid)
 	if err != nil {
@@ -688,7 +688,7 @@ func (a *Ab) PeerUpdate(c *gin.Context) {
 	}
 
 	//check privileges
-	if !service.AllService.AddressBookService.CheckUserWritePrivilege(u, uid, cid) {
+	if !service.AllService.CheckUserWritePrivilege(u, uid, cid) {
 		response.Error(c, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
@@ -701,7 +701,7 @@ func (a *Ab) PeerUpdate(c *gin.Context) {
 	}
 	fidstr := fid.(string)
 
-	ab := service.AllService.AddressBookService.InfoByUserIdAndIdAndCid(uid, fidstr, cid)
+	ab := service.AllService.InfoByUserIdAndIdAndCid(uid, fidstr, cid)
 	if ab == nil || ab.RowId == 0 {
 		response.Error(c, response.TranslateMsg(c, "ItemNotFound"))
 		return
@@ -718,7 +718,7 @@ func (a *Ab) PeerUpdate(c *gin.Context) {
 	if tags, _ok := f["tags"]; _ok {
 		f["tags"], _ = json.Marshal(tags)
 	}
-	err = service.AllService.AddressBookService.UpdateByMap(ab, f)
+	err = service.AllService.UpdateByMap(ab, f)
 	if err != nil {
 		response.Error(c, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return

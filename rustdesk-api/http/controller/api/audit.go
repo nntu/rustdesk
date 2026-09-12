@@ -80,18 +80,18 @@ func (a *Audit) AuditConn(c *gin.Context) {
 	switch af.Action {
 	case model.AuditActionNew:
 		ac.Guid = uuid.New().String()
-		_ = service.AllService.AuditService.CreateAuditConn(ac)
+		_ = service.AllService.CreateAuditConn(ac)
 		storeAuditNonceResult(af.Nonce, ac.Guid)
 		response.Success(c, ac.Guid)
 		return
 	case model.AuditActionClose:
-		ex := service.AllService.AuditService.InfoByPeerIdAndConnId(af.Id, af.ConnId)
+		ex := service.AllService.InfoByPeerIdAndConnId(af.Id, af.ConnId)
 		if ex.Id != 0 {
 			ex.CloseTime = time.Now().Unix()
-			_ = service.AllService.AuditService.UpdateAuditConn(ex)
+			_ = service.AllService.UpdateAuditConn(ex)
 		}
 	case "":
-		ex := service.AllService.AuditService.InfoByPeerIdAndConnId(af.Id, af.ConnId)
+		ex := service.AllService.InfoByPeerIdAndConnId(af.Id, af.ConnId)
 		if ex.Id != 0 {
 			up := &model.AuditConn{
 				IdModel:   model.IdModel{Id: ex.Id},
@@ -100,7 +100,7 @@ func (a *Audit) AuditConn(c *gin.Context) {
 				SessionId: ac.SessionId,
 				Type:      ac.Type,
 			}
-			_ = service.AllService.AuditService.UpdateAuditConn(up)
+			_ = service.AllService.UpdateAuditConn(up)
 		}
 	}
 	storeAuditNonceResult(af.Nonce, "")
@@ -132,7 +132,7 @@ func (a *Audit) AuditFile(c *gin.Context) {
 	//c.ShouldBindBodyWith(ttt, binding.JSON)
 	//fmt.Println(ttt)
 	af := aff.ToAuditFile()
-	_ = service.AllService.AuditService.CreateAuditFile(af)
+	_ = service.AllService.CreateAuditFile(af)
 	storeAuditNonceResult(aff.Nonce, "")
 	response.Success(c, "")
 }
@@ -149,7 +149,7 @@ func (a *Audit) AuditConnActive(c *gin.Context) {
 
 	connType, _ := strconv.Atoi(connTypeStr)
 
-	currentUser := service.AllService.UserService.CurUser(c)
+	currentUser := service.AllService.CurUser(c)
 	if currentUser == nil || currentUser.Id == 0 {
 		c.JSON(401, "Chưa xác thực")
 		return
@@ -187,7 +187,7 @@ func (a *Audit) UpdateAuditNote(c *gin.Context) {
 		return
 	}
 
-	currentUser := service.AllService.UserService.CurUser(c)
+	currentUser := service.AllService.CurUser(c)
 	if currentUser == nil || currentUser.Id == 0 {
 		c.JSON(401, "Chưa xác thực")
 		return
@@ -208,7 +208,7 @@ func (a *Audit) UpdateAuditNote(c *gin.Context) {
 	}
 
 	ac.Note = form.Note
-	err = service.AllService.AuditService.UpdateAuditConn(ac)
+	err = service.AllService.UpdateAuditConn(ac)
 	if err != nil {
 		c.JSON(500, err.Error())
 		return
@@ -239,7 +239,7 @@ func (a *Audit) AuditAlarm(c *gin.Context) {
 	}
 
 	alarm := af.ToAuditAlarm(c.ClientIP())
-	err = service.AllService.AuditService.CreateAuditAlarm(alarm)
+	err = service.AllService.CreateAuditAlarm(alarm)
 	if err != nil {
 		response.Error(c, err.Error())
 		return

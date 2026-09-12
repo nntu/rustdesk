@@ -32,7 +32,7 @@ func (ct *UserToken) List(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	res := service.AllService.UserService.TokenList(query.Page, query.PageSize, func(tx *gorm.DB) {
+	res := service.AllService.TokenList(query.Page, query.PageSize, func(tx *gorm.DB) {
 		if query.UserId > 0 {
 			tx.Where("user_id = ?", query.UserId)
 		}
@@ -64,14 +64,14 @@ func (ct *UserToken) Delete(c *gin.Context) {
 		response.Fail(c, 101, errList[0])
 		return
 	}
-	l := service.AllService.UserService.TokenInfoById(f.Id)
-	u := service.AllService.UserService.CurUser(c)
-	if !service.AllService.UserService.IsAdmin(u) && l.UserId != u.Id {
+	l := service.AllService.TokenInfoById(f.Id)
+	u := service.AllService.CurUser(c)
+	if !service.AllService.IsAdmin(u) && l.UserId != u.Id {
 		response.Fail(c, 101, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
 	if l.Id > 0 {
-		err := service.AllService.UserService.DeleteToken(l)
+		err := service.AllService.DeleteToken(l)
 		if err == nil {
 			response.Success(c, nil)
 			return
@@ -104,7 +104,7 @@ func (ct *UserToken) BatchDelete(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
-	err := service.AllService.UserService.BatchDeleteUserToken(ids)
+	err := service.AllService.BatchDeleteUserToken(ids)
 	if err == nil {
 		response.Success(c, nil)
 		return

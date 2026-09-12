@@ -23,7 +23,7 @@ type WebClient struct {
 // @Router /server-config [get]
 // @Security token
 func (i *WebClient) ServerConfig(c *gin.Context) {
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 
 	peers := map[string]*api.WebClientPeerPayload{}
 	abs := service.AllService.AddressBookService.ListByUserIdAndCollectionId(u.Id, 0, 1, 100)
@@ -62,7 +62,7 @@ func (i *WebClient) SharedPeer(c *gin.Context) {
 		response.Fail(c, 101, "share_token is required")
 		return
 	}
-	sr := service.AllService.AddressBookService.SharedPeer(t)
+	sr := service.AllService.SharedPeer(t)
 	if sr == nil || sr.Id == 0 {
 		response.Fail(c, 101, "share not found")
 		return
@@ -76,7 +76,7 @@ func (i *WebClient) SharedPeer(c *gin.Context) {
 		}
 	}
 
-	ab := service.AllService.AddressBookService.InfoByUserIdAndId(sr.UserId, sr.PeerId)
+	ab := service.AllService.InfoByUserIdAndId(sr.UserId, sr.PeerId)
 	if ab.RowId == 0 {
 		response.Fail(c, 101, "peer not found")
 		return

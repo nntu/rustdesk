@@ -64,7 +64,7 @@ func (ct *Login) Login(c *gin.Context) {
 		}
 	}
 
-	u := service.AllService.UserService.InfoByUsernamePassword(f.Username, f.Password)
+	u := service.AllService.InfoByUsernamePassword(f.Username, f.Password)
 
 	if u.Id == 0 {
 		global.Logger.Warn(fmt.Sprintf("Login Fail: %s %s %s", "UsernameOrPasswordError", c.RemoteIP(), clientIp))
@@ -77,7 +77,7 @@ func (ct *Login) Login(c *gin.Context) {
 		return
 	}
 
-	if !service.AllService.UserService.CheckUserEnable(u) {
+	if !service.AllService.CheckUserEnable(u) {
 		if needCaptcha {
 			response.Fail(c, 110, response.TranslateMsg(c, "UserDisabled"))
 			return
@@ -86,7 +86,7 @@ func (ct *Login) Login(c *gin.Context) {
 		return
 	}
 
-	ut := service.AllService.UserService.Login(u, &model.LoginLog{
+	ut := service.AllService.Login(u, &model.LoginLog{
 		UserId:   u.Id,
 		Client:   model.LoginLogClientWebAdmin,
 		Uuid:     "", //must be empty
@@ -139,10 +139,10 @@ func (ct *Login) Captcha(c *gin.Context) {
 // @Failure 500 {object} response.Response
 // @Router /admin/logout [post]
 func (ct *Login) Logout(c *gin.Context) {
-	u := service.AllService.UserService.CurUser(c)
+	u := service.AllService.CurUser(c)
 	token, ok := c.Get("token")
 	if ok {
-		_ = service.AllService.UserService.Logout(u, token.(string))
+		_ = service.AllService.Logout(u, token.(string))
 	}
 	response.Success(c, nil)
 }
@@ -238,6 +238,6 @@ func responseLoginSuccess(c *gin.Context, u *model.User, token string) {
 	lp := &adResp.LoginPayload{}
 	lp.FromUser(u)
 	lp.Token = token
-	lp.RouteNames = service.AllService.UserService.RouteNames(u)
+	lp.RouteNames = service.AllService.RouteNames(u)
 	response.Success(c, lp)
 }
