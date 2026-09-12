@@ -122,16 +122,17 @@ services:
       - TURN_SECRET=${COTURN_SECRET:-coturn_secret_key_change_me}
       - TURN_SERVER_NAME=${DOMAIN}
       - TURN_REALM=${DOMAIN}
-    command:
-      - -n
-      - --log-file=stdout
-      - --external-ip=${EXTERNAL_IP:-0.0.0.0}
-      - --listening-port=3478
-      - --min-port=49152
-      - --max-port=49200
-      - --realm=${DOMAIN}
-      - --use-auth-secret
-      - --static-auth-secret=${COTURN_SECRET:-coturn_secret_key_change_me}
+    command: >
+      turnserver -n
+      --log-file=stdout
+      --listening-port=3478
+      --min-port=49152
+      --max-port=49200
+      --realm=${DOMAIN}
+      --use-auth-secret
+      --static-auth-secret=${COTURN_SECRET:-coturn_secret_key_change_me}
+      --no-tls
+      --no-dtls
     networks:
       - rustdesk-net
 
