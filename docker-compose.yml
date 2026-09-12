@@ -124,23 +124,12 @@ services:
     ports:
       - "3478:3478"
       - "3478:3478/udp"
-      - "5349:5349"
-      - "5349:5349/udp"
       - "49152-49200:49152-49200/udp"
-    environment:
-      - TURN_PORT=3478
-      - TURN_SECRET=${COTURN_SECRET:-coturn_secret_key_change_me}
-      - TURN_SERVER_NAME=${DOMAIN}
-      - TURN_REALM=${DOMAIN}
-    command: >
-      turnserver -n
-      --log-file=stdout
-      --listening-port=3478
-      --min-port=49152
-      --max-port=49200
-      --realm=${DOMAIN}
-      --use-auth-secret
-      --static-auth-secret=${COTURN_SECRET:-coturn_secret_key_change_me}
+    volumes:
+      - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
+    command:
+      - -c
+      - /etc/coturn/turnserver.conf
     networks:
       - rustdesk-net
     logging: *default-logging
