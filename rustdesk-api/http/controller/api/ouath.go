@@ -36,7 +36,7 @@ func (o *Oauth) OidcAuth(c *gin.Context) {
 
 	oauthService := service.AllService.OauthService
 
-	err, state, verifier, nonce, url := oauthService.BeginAuth(f.Op, f.ApiDomain)
+	state, verifier, nonce, url, err := oauthService.BeginAuth(f.Op, f.ApiDomain)
 	if err != nil {
 		response.Error(c, response.TranslateMsg(c, err.Error()))
 		return
@@ -172,7 +172,7 @@ func (o *Oauth) OauthCallback(c *gin.Context) {
 	var user *model.User
 	// Get user information
 	code := c.Query("code")
-	err, oauthUser := oauthService.Callback(code, verifier, op, nonce, oauthCache.ApiDomain)
+	oauthUser, err := oauthService.Callback(code, verifier, op, nonce, oauthCache.ApiDomain)
 	if err != nil {
 		c.HTML(http.StatusOK, "oauth_fail.html", gin.H{
 			"message":     "OauthFailed",
@@ -182,7 +182,8 @@ func (o *Oauth) OauthCallback(c *gin.Context) {
 	}
 	userId := oauthCache.UserId
 	openid := oauthUser.OpenId
-	if action == service.OauthActionTypeBind {
+	switch action {
+	case service.OauthActionTypeBind:
 
 		//fmt.Println("bind", ty, userData)
 		// Check whether this openid has been bound
@@ -214,7 +215,7 @@ func (o *Oauth) OauthCallback(c *gin.Context) {
 		})
 		return
 
-	} else if action == service.OauthActionTypeLogin {
+	case service.OauthActionTypeLogin:
 		//Log in
 		if userId != 0 {
 			c.HTML(http.StatusOK, "oauth_fail.html", gin.H{
@@ -233,7 +234,7 @@ func (o *Oauth) OauthCallback(c *gin.Context) {
 			}
 
 			//Automatic registration
-			err, user = service.AllService.UserService.RegisterByOauth(oauthUser, op)
+			user, err = service.AllService.UserService.RegisterByOauth(oauthUser, op)
 			if err != nil {
 				c.HTML(http.StatusOK, "oauth_fail.html", gin.H{
 					"message": err.Error(),
@@ -260,7 +261,7 @@ func (o *Oauth) OauthCallback(c *gin.Context) {
 			"message": "OauthSuccess",
 		})
 		return
-	} else {
+	default:
 		c.HTML(http.StatusOK, "oauth_fail.html", gin.H{
 			"message": "ParamsError",
 		})

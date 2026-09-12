@@ -30,7 +30,7 @@ func setupTestRouter() (*gin.Engine, *gorm.DB) {
 	}
 	global.DB = db
 
-	db.AutoMigrate(
+	_ = db.AutoMigrate(
 		&model.User{},
 		&model.UserToken{},
 		&model.Peer{},
@@ -120,7 +120,7 @@ func TestAuditWorkflow(t *testing.T) {
 	}
 
 	var connResp map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &connResp)
+	_ = json.Unmarshal(w.Body.Bytes(), &connResp)
 	guid, ok := connResp["data"].(string)
 	if !ok || guid == "" {
 		t.Fatalf("Expected returned GUID in data field, got response: %s", w.Body.String())
@@ -137,7 +137,7 @@ func TestAuditWorkflow(t *testing.T) {
 		t.Fatalf("Expected status 200, got %d. Body: %s", w.Code, w.Body.String())
 	}
 	var returnedGuid string
-	json.Unmarshal(w.Body.Bytes(), &returnedGuid)
+	_ = json.Unmarshal(w.Body.Bytes(), &returnedGuid)
 	if returnedGuid != guid {
 		t.Fatalf("Expected returned GUID %s, got %s", guid, returnedGuid)
 	}
@@ -277,7 +277,7 @@ func TestAuditWorkflow(t *testing.T) {
 		t.Fatalf("Expected deploy status 200, got %d. Body: %s", w.Code, w.Body.String())
 	}
 	var deployResp map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &deployResp)
+	_ = json.Unmarshal(w.Body.Bytes(), &deployResp)
 	if deployResp["result"] != "OK" {
 		t.Fatalf("Expected deploy result to be 'OK', got '%v'", deployResp["result"])
 	}
@@ -320,7 +320,7 @@ func TestAuditWorkflow(t *testing.T) {
 		t.Fatalf("Expected deploy status 200, got %d", w.Code)
 	}
 	var deployResp2 map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &deployResp2)
+	_ = json.Unmarshal(w.Body.Bytes(), &deployResp2)
 	if deployResp2["result"] != "ID_TAKEN" {
 		t.Fatalf("Expected deploy result to be 'ID_TAKEN', got '%v'", deployResp2["result"])
 	}

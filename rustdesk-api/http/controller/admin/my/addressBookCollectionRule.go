@@ -98,7 +98,8 @@ func (abcr *AddressBookCollectionRule) CheckForm(u *model.User, t *model.Address
 	}
 
 	//check to_id
-	if t.Type == model.ShareAddressBookRuleTypePersonal {
+	switch t.Type {
+	case model.ShareAddressBookRuleTypePersonal:
 		if t.ToId == t.UserId {
 			return "CannotShareToSelf", false
 		}
@@ -110,7 +111,7 @@ func (abcr *AddressBookCollectionRule) CheckForm(u *model.User, t *model.Address
 		//if tou.GroupId != u.GroupId {
 		//	return "NoAccess", false
 		//}
-	} else if t.Type == model.ShareAddressBookRuleTypeGroup {
+	case model.ShareAddressBookRuleTypeGroup:
 		//Non-administrators cannot share to other groups
 		//if t.ToId != u.GroupId {
 		//	return "NoAccess", false
@@ -120,7 +121,7 @@ func (abcr *AddressBookCollectionRule) CheckForm(u *model.User, t *model.Address
 		if tog.Id == 0 {
 			return "ItemNotFound", false
 		}
-	} else {
+	default:
 		return "ParamsError", false
 	}
 	// Repeat check

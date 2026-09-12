@@ -27,9 +27,9 @@ func TestFileGet(t *testing.T) {
 }
 func TestFileSetGet(t *testing.T) {
 	fc := NewFileCache()
-	err := fc.Set("key1", "ddd", 0)
+	_ = fc.Set("key1", "ddd", 0)
 	res := ""
-	err = fc.Get("key1", &res)
+	err := fc.Get("key1", &res)
 	if err != nil {
 		fmt.Println(err.Error())
 		t.Fatalf("Read failed")
@@ -41,7 +41,7 @@ func TestFileGetJson(t *testing.T) {
 	old := &r{
 		A: "a", B: "b",
 	}
-	fc.Set("123", old, 0)
+	_ = fc.Set("123", old, 0)
 	res := &r{}
 	err2 := fc.Get("123", res)
 	fmt.Println("res", res)
@@ -80,7 +80,7 @@ func BenchmarkSet(b *testing.B) {
 	fc := NewFileCache()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		fc.Set("123", "{dsv}", 1000)
+		_ = fc.Set("123", "{dsv}", 1000)
 	}
 }
 
@@ -89,6 +89,6 @@ func BenchmarkGet(b *testing.B) {
 	b.ResetTimer()
 	v := ""
 	for i := 0; i < b.N; i++ {
-		fc.Get("123", &v)
+		_ = fc.Get("123", &v)
 	}
 }

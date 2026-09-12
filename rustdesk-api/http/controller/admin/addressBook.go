@@ -35,7 +35,6 @@ func (ct *AddressBook) Detail(c *gin.Context) {
 		return
 	}
 	response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
-	return
 }
 
 // Create Create address book
@@ -141,7 +140,7 @@ func (ct *AddressBook) BatchCreate(c *gin.Context) {
 		}
 		ex := service.AllService.AddressBookService.InfoByUserIdAndIdAndCid(t.UserId, t.Id, t.CollectionId)
 		if ex.RowId == 0 {
-			service.AllService.AddressBookService.Create(t)
+			_ = service.AllService.AddressBookService.Create(t)
 		}
 	}
 
@@ -158,6 +157,10 @@ func (ct *AddressBook) BatchCreate(c *gin.Context) {
 // @Param page_size query int false "page size"
 // @Param user_id query int false "userid"
 // @Param is_my query int false "Is it mine"
+// @Param collection_id query int false "collection_id"
+// @Param id query string false "id"
+// @Param username query string false "username"
+// @Param hostname query string false "hostname"
 // @Success 200 {object} response.Response{data=model.AddressBookList}
 // @Failure 500 {object} response.Response
 // @Router /admin/address_book/list [get]
@@ -169,14 +172,11 @@ func (ct *AddressBook) List(c *gin.Context) {
 		return
 	}
 	res := service.AllService.AddressBookService.List(query.Page, query.PageSize, func(tx *gorm.DB) {
-		tx.Preload("Collection", func(txc *gorm.DB) *gorm.DB {
-			return txc.Select("id,name")
-		})
-		if query.Id != "" {
-			tx.Where("id like ?", "%"+query.Id+"%")
-		}
 		if query.UserId > 0 {
 			tx.Where("user_id = ?", query.UserId)
+		}
+		if query.Id != "" {
+			tx.Where("id like ?", "%"+query.Id+"%")
 		}
 		if query.Username != "" {
 			tx.Where("username like ?", "%"+query.Username+"%")
@@ -189,10 +189,6 @@ func (ct *AddressBook) List(c *gin.Context) {
 		}
 	})
 
-	abCIds := make([]uint, 0)
-	for _, ab := range res.AddressBooks {
-		abCIds = append(abCIds, ab.CollectionId)
-	}
 	response.Success(c, res)
 }
 
@@ -356,7 +352,7 @@ func (ct *AddressBook) BatchCreateFromPeers(c *gin.Context) {
 		if ex.RowId != 0 {
 			continue
 		}
-		service.AllService.AddressBookService.Create(ab)
+		_ = service.AllService.AddressBookService.Create(ab)
 	}
 	response.Success(c, nil)
 }

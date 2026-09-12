@@ -63,11 +63,12 @@ func (is *ServerCmdService) SendSocketCmd(ty string, port int, cmd string) (stri
 	if ty == "v4" {
 		tcp = "tcp"
 		addr = "127.0.0.1"
-		if port == 21115 {
+		switch port {
+		case 21115:
 			if h := os.Getenv("RUSTDESK_API_HBBS_HOST"); h != "" {
 				addr = h
 			}
-		} else if port == 21117 {
+		case 21117:
 			if h := os.Getenv("RUSTDESK_API_HBBR_HOST"); h != "" {
 				addr = h
 			}
@@ -78,7 +79,7 @@ func (is *ServerCmdService) SendSocketCmd(ty string, port int, cmd string) (stri
 		Logger.Debugf("%s connect to id server failed: %v", ty, err)
 		return "", err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	//Send command
 	_, err = conn.Write([]byte(cmd))
 	if err != nil {

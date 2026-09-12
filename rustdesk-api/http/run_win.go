@@ -7,5 +7,5 @@ import (
 )
 
 func Run(g *gin.Engine, addr string) {
-	g.Run(addr)
+	_ = g.Run(addr)
 }

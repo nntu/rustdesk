@@ -74,7 +74,7 @@ func (i *Index) Heartbeat(c *gin.Context) {
 	if found {
 		if cached.lastOnlineIp != clientIp || now-cached.lastDbUpdate >= 180 {
 			upp := &model.Peer{RowId: cached.rowId, LastOnlineTime: now, LastOnlineIp: clientIp}
-			service.AllService.PeerService.Update(upp)
+			_ = service.AllService.PeerService.Update(upp)
 			hbCacheMu.Lock()
 			hbCache[info.Id] = hbCacheEntry{
 				rowId:        cached.rowId,
@@ -90,7 +90,7 @@ func (i *Index) Heartbeat(c *gin.Context) {
 	peer := service.AllService.PeerService.FindById(info.Id)
 	if peer != nil && peer.RowId != 0 {
 		upp := &model.Peer{RowId: peer.RowId, LastOnlineTime: now, LastOnlineIp: clientIp}
-		service.AllService.PeerService.Update(upp)
+		_ = service.AllService.PeerService.Update(upp)
 		hbCacheMu.Lock()
 		hbCache[info.Id] = hbCacheEntry{
 			rowId:        peer.RowId,

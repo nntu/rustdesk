@@ -76,7 +76,7 @@ func BenchmarkRSet(b *testing.B) {
 	})
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		rc.Set("123", "{dsv}", 1000)
+		_ = rc.Set("123", "{dsv}", 1000)
 	}
 }
 
@@ -89,6 +89,6 @@ func BenchmarkRGet(b *testing.B) {
 	b.ResetTimer()
 	v := ""
 	for i := 0; i < b.N; i++ {
-		rc.Get("123", &v)
+		_ = rc.Get("123", &v)
 	}
 }

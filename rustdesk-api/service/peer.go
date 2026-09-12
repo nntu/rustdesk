@@ -38,16 +38,7 @@ func (ps *PeerService) UuidBindUserId(deviceId string, uuid string, userId uint)
 	// update if exists
 	if peer.RowId > 0 {
 		peer.UserId = userId
-		ps.Update(peer)
-	} else {
-		// Create if it does not exist
-		/*if deviceId != "" {
-			DB.Create(&model.Peer{
-				Id:     deviceId,
-				Uuid:   uuid,
-				UserId: userId,
-			})
-		}*/
+		_ = ps.Update(peer)
 	}
 }
 
@@ -117,7 +108,7 @@ func (ps *PeerService) Delete(u *model.Peer) error {
 		return err
 	}
 	// delete token
-	return AllService.UserService.FlushTokenByUuid(uuid)
+	return AllService.FlushTokenByUuid(uuid)
 }
 
 // GetUuidListByIDs Gets the uuid list based on ids
@@ -139,12 +130,15 @@ func (ps *PeerService) GetUuidListByIDs(ids []uint) ([]string, error) {
 // BatchDelete batch delete, the token should also be deleted
 func (ps *PeerService) BatchDelete(ids []uint) error {
 	uuids, err := ps.GetUuidListByIDs(ids)
+	if err != nil {
+		return err
+	}
 	err = DB.Where("row_id in (?)", ids).Delete(&model.Peer{}).Error
 	if err != nil {
 		return err
 	}
 	// delete token
-	return AllService.UserService.FlushTokenByUuids(uuids)
+	return AllService.FlushTokenByUuids(uuids)
 }
 
 // Update update

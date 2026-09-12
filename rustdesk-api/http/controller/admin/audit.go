@@ -33,7 +33,7 @@ func (a *Audit) ConnList(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	res := service.AllService.AuditService.AuditConnList(query.Page, query.PageSize, func(tx *gorm.DB) {
+	res := service.AllService.AuditConnList(query.Page, query.PageSize, func(tx *gorm.DB) {
 		if query.PeerId != "" {
 			tx.Where("peer_id like ?", "%"+query.PeerId+"%")
 		}
@@ -68,9 +68,9 @@ func (a *Audit) ConnDelete(c *gin.Context) {
 		response.Fail(c, 101, errList[0])
 		return
 	}
-	l := service.AllService.AuditService.ConnInfoById(f.Id)
+	l := service.AllService.ConnInfoById(f.Id)
 	if l.Id > 0 {
-		err := service.AllService.AuditService.DeleteAuditConn(l)
+		err := service.AllService.DeleteAuditConn(l)
 		if err == nil {
 			response.Success(c, nil)
 			return
@@ -109,7 +109,6 @@ func (a *Audit) BatchConnDelete(c *gin.Context) {
 		return
 	}
 	response.Fail(c, 101, err.Error())
-	return
 }
 
 // FileList list

@@ -17,7 +17,7 @@ func TestMemorySet(t *testing.T) {
 
 func TestMemoryGet(t *testing.T) {
 	mc := NewMemoryCache(0)
-	mc.Set("123", "44567", 0)
+	_ = mc.Set("123", "44567", 0)
 	res := ""
 	err := mc.Get("123", &res)
 	fmt.Println("res", res)
@@ -33,8 +33,8 @@ func TestMemoryGet(t *testing.T) {
 func TestMemorySetExpGet(t *testing.T) {
 	mc := NewMemoryCache(0)
 	//mc.stopEviction()
-	mc.Set("1", "10", 10)
-	mc.Set("2", "5", 5)
+	_ = mc.Set("1", "10", 10)
+	_ = mc.Set("2", "5", 5)
 	err := mc.Set("3", "3", 3)
 	if err != nil {
 		t.Fatalf("Write failed")
@@ -67,13 +67,13 @@ func TestMemorySetExpGet(t *testing.T) {
 }
 func TestMemoryLru(t *testing.T) {
 	mc := NewMemoryCache(18)
-	mc.Set("1", "1111", 10)
-	mc.Set("2", "2222", 5)
+	_ = mc.Set("1", "1111", 10)
+	_ = mc.Set("2", "2222", 5)
 	//Read once, 2 will be placed at the end
-	mc.Get("1", nil)
+	_ = mc.Get("1", nil)
 	err := mc.Set("3", "three", 3)
 	if err != nil {
-		//t.Fatalf("Write failed")
+		t.Fatalf("Write failed: %v", err)
 	}
 
 	res := ""
@@ -102,6 +102,6 @@ func BenchmarkMemorySet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("key%d", i)
 		value := fmt.Sprintf("value%d", i)
-		mc.Set(key, value, 1000)
+		_ = mc.Set(key, value, 1000)
 	}
 }

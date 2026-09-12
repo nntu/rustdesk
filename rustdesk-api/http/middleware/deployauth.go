@@ -42,7 +42,7 @@ func RustOrDeployAuth() gin.HandlerFunc {
 			return
 		}
 
-		dt, err := service.AllService.DeployTokenService.FindValid(token)
+		dt, err := service.AllService.FindValid(token)
 		if err == nil && dt != nil {
 			user = service.AllService.UserService.InfoById(dt.UserId)
 			if user.Id > 0 && service.AllService.UserService.CheckUserEnable(user) {

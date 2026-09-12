@@ -111,12 +111,12 @@ func (ct *Login) Captcha(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "NoCaptchaRequired"))
 		return
 	}
-	err, captcha := loginLimiter.RequireCaptcha()
+	captcha, err := loginLimiter.RequireCaptcha()
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "CaptchaError")+err.Error())
 		return
 	}
-	err, b64 := loginLimiter.DrawCaptcha(captcha.Content)
+	b64, err := loginLimiter.DrawCaptcha(captcha.Content)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "CaptchaError")+err.Error())
 		return
@@ -142,7 +142,7 @@ func (ct *Login) Logout(c *gin.Context) {
 	u := service.AllService.UserService.CurUser(c)
 	token, ok := c.Get("token")
 	if ok {
-		service.AllService.UserService.Logout(u, token.(string))
+		_ = service.AllService.UserService.Logout(u, token.(string))
 	}
 	response.Success(c, nil)
 }
@@ -164,7 +164,7 @@ func (ct *Login) LoginOptions(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "LoginBanned"))
 		return
 	}
-	ops := service.AllService.OauthService.GetOauthProviders()
+	ops := service.AllService.GetOauthProviders()
 	response.Success(c, gin.H{
 		"ops":          ops,
 		"register":     global.Config.App.Register,
@@ -191,13 +191,13 @@ func (ct *Login) OidcAuth(c *gin.Context) {
 		return
 	}
 
-	err, state, verifier, nonce, url := service.AllService.OauthService.BeginAuth(f.Op, f.ApiDomain)
+	state, verifier, nonce, url, err := service.AllService.BeginAuth(f.Op, f.ApiDomain)
 	if err != nil {
 		response.Error(c, response.TranslateMsg(c, err.Error()))
 		return
 	}
 
-	service.AllService.OauthService.SetOauthCache(state, &service.OauthCacheItem{
+	service.AllService.SetOauthCache(state, &service.OauthCacheItem{
 		Action:     service.OauthActionTypeLogin,
 		ApiDomain:  f.ApiDomain,
 		Op:         f.Op,

@@ -26,13 +26,12 @@ type DeviceGroup struct {
 func (ct *DeviceGroup) Detail(c *gin.Context) {
 	id := c.Param("id")
 	iid, _ := strconv.Atoi(id)
-	u := service.AllService.GroupService.DeviceGroupInfoById(uint(iid))
+	u := service.AllService.DeviceGroupInfoById(uint(iid))
 	if u.Id > 0 {
 		response.Success(c, u)
 		return
 	}
 	response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
-	return
 }
 
 // Create Create a device group
@@ -58,7 +57,7 @@ func (ct *DeviceGroup) Create(c *gin.Context) {
 		return
 	}
 	u := f.ToDeviceGroup()
-	err := service.AllService.GroupService.DeviceGroupCreate(u)
+	err := service.AllService.DeviceGroupCreate(u)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
@@ -84,7 +83,7 @@ func (ct *DeviceGroup) List(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	res := service.AllService.GroupService.DeviceGroupList(query.Page, query.PageSize, nil)
+	res := service.AllService.DeviceGroupList(query.Page, query.PageSize, nil)
 	response.Success(c, res)
 }
 

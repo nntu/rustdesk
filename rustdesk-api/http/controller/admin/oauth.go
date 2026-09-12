@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"rustdesk-api/global"
 	"rustdesk-api/http/request/admin"
-	adminReq "rustdesk-api/http/request/admin"
 	"rustdesk-api/http/response"
 	"rustdesk-api/service"
 )
@@ -44,7 +43,7 @@ func (o *Oauth) ToBind(c *gin.Context) {
 		return
 	}
 
-	err, state, verifier, nonce, url := service.AllService.OauthService.BeginAuth(f.Op, "")
+	state, verifier, nonce, url, err := service.AllService.OauthService.BeginAuth(f.Op, "")
 	if err != nil {
 		response.Error(c, response.TranslateMsg(c, err.Error()))
 		return

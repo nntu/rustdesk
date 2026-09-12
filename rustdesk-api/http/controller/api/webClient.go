@@ -53,7 +53,10 @@ func (i *WebClient) ServerConfig(c *gin.Context) {
 // @Router /shared-peer [post]
 func (i *WebClient) SharedPeer(c *gin.Context) {
 	j := &gin.H{}
-	c.ShouldBindJSON(j)
+	if err := c.ShouldBindJSON(j); err != nil {
+		response.Fail(c, 101, "invalid json format")
+		return
+	}
 	t := (*j)["share_token"].(string)
 	if t == "" {
 		response.Fail(c, 101, "share_token is required")

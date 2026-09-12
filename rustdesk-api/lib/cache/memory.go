@@ -60,7 +60,7 @@ func (pq *PriorityQueue) Pop() interface{} {
 func (m *MemoryCache) Get(key string, value interface{}) error {
 	// Use reflection to set the stored value into the passed pointer variable
 	val := reflect.ValueOf(value)
-	if val.Kind() != reflect.Ptr {
+	if val.Kind() != reflect.Pointer {
 		return errors.New("value must be a pointer")
 	}
 	//set to null
@@ -174,11 +174,6 @@ func (m *MemoryCache) startEviction() {
 			}
 		}
 	}()
-}
-
-// stopEviction stops scheduled cleaning
-func (m *MemoryCache) stopEviction() {
-	close(m.quit)
 }
 
 // deleteItem removes a key from the cache.

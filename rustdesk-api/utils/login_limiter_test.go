@@ -74,7 +74,7 @@ func TestCaptchaFlow(t *testing.T) {
 	}
 
 	// Generate verification code
-	err, capc := limiter.RequireCaptcha()
+	capc, err := limiter.RequireCaptcha()
 	if err != nil {
 		t.Fatalf("Failed to generate verification code:%v", err)
 	}
@@ -109,7 +109,7 @@ func TestCaptchaMustFlow(t *testing.T) {
 	}
 
 	// Generate verification code
-	err, capc := limiter.RequireCaptcha()
+	capc, err := limiter.RequireCaptcha()
 	if err != nil {
 		t.Fatalf("Failed to generate verification code:%v", err)
 	}
@@ -141,7 +141,7 @@ func TestAttemptTimeout(t *testing.T) {
 	}
 
 	// Generate verification code
-	err, _ := limiter.RequireCaptcha()
+	_, err := limiter.RequireCaptcha()
 	if err != nil {
 		t.Fatalf("Failed to generate verification code:%v", err)
 	}
@@ -172,7 +172,7 @@ func TestCaptchaTimeout(t *testing.T) {
 	}
 
 	// Generate verification code
-	err, capc := limiter.RequireCaptcha()
+	capc, err := limiter.RequireCaptcha()
 	if err != nil {
 		t.Fatalf("Failed to generate verification code:%v", err)
 	}
@@ -265,14 +265,14 @@ func TestB64CaptchaFlow(t *testing.T) {
 	}
 
 	// Generate verification code
-	err, capc := limiter.RequireCaptcha()
+	capc, err := limiter.RequireCaptcha()
 	if err != nil {
 		t.Fatalf("Failed to generate verification code:%v", err)
 	}
 	fmt.Printf("Verification code content: %#v\n", capc)
 
 	//draw
-	err, b64 := limiter.DrawCaptcha(capc.Content)
+	b64, err := limiter.DrawCaptcha(capc.Content)
 	if err != nil {
 		t.Fatalf("Failed to draw verification code:%v", err)
 	}

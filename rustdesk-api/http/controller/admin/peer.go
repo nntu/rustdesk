@@ -273,4 +273,3 @@ func (ct *Peer) SetPassword(c *gin.Context) {
 	}
 	response.Success(c, nil)
 }
-

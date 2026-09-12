@@ -135,7 +135,7 @@ func (l *Login) Logout(c *gin.Context) {
 	u := service.AllService.UserService.CurUser(c)
 	token, ok := c.Get("token")
 	if ok {
-		service.AllService.UserService.Logout(u, token.(string))
+		_ = service.AllService.UserService.Logout(u, token.(string))
 	}
 	c.JSON(http.StatusOK, nil)
 

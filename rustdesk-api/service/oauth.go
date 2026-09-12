@@ -105,7 +105,7 @@ func normalizeAPIDomain(apiDomain string) string {
 	return apiDomain
 }
 
-func (os *OauthService) BeginAuth(op string, apiDomain string) (error error, state, verifier, nonce, url string) {
+func (os *OauthService) BeginAuth(op string, apiDomain string) (state, verifier, nonce, url string, err error) {
 	apiDomain = normalizeAPIDomain(apiDomain)
 	state = utils.RandomString(10) + strconv.FormatInt(time.Now().Unix(), 10)
 	verifier = ""
@@ -113,9 +113,9 @@ func (os *OauthService) BeginAuth(op string, apiDomain string) (error error, sta
 	if op == model.OauthTypeWebauth {
 		url = apiDomain + "/_admin/#/oauth/" + state
 		//url = "http://localhost:8888/_admin/#/oauth/" + code
-		return nil, state, verifier, nonce, url
+		return state, verifier, nonce, url, nil
 	}
-	err, oauthInfo, oauthConfig, _ := os.GetOauthConfig(op, apiDomain)
+	oauthInfo, oauthConfig, _, err := os.GetOauthConfig(op, apiDomain)
 	if err == nil {
 		extras := make([]oauth2.AuthCodeOption, 0, 3)
 
@@ -134,13 +134,13 @@ func (os *OauthService) BeginAuth(op string, apiDomain string) (error error, sta
 			}
 		}
 
-		return err, state, verifier, nonce, oauthConfig.AuthCodeURL(state, extras...)
+		return state, verifier, nonce, oauthConfig.AuthCodeURL(state, extras...), err
 	}
 
-	return err, state, verifier, nonce, ""
+	return state, verifier, nonce, "", err
 }
 
-func (os *OauthService) FetchOidcProvider(issuer string) (error, *oidc.Provider) {
+func (os *OauthService) FetchOidcProvider(issuer string) (*oidc.Provider, error) {
 
 	// Get the HTTP client (with or without proxy based on configuration)
 	client := getHTTPClientWithProxy()
@@ -149,10 +149,10 @@ func (os *OauthService) FetchOidcProvider(issuer string) (error, *oidc.Provider)
 
 	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
-	return nil, provider
+	return provider, nil
 }
 
 func (os *OauthService) GithubProvider() *oidc.Provider {
@@ -180,11 +180,11 @@ func (os *OauthService) LinuxdoProvider() *oidc.Provider {
 }
 
 // GetOauthConfig retrieves the OAuth2 configuration based on the provider name
-func (os *OauthService) GetOauthConfig(op string, apiDomain string) (err error, oauthInfo *model.Oauth, oauthConfig *oauth2.Config, provider *oidc.Provider) {
+func (os *OauthService) GetOauthConfig(op string, apiDomain string) (oauthInfo *model.Oauth, oauthConfig *oauth2.Config, provider *oidc.Provider, err error) {
 	//err, oauthInfo, oauthConfig = os.getOauthConfigGeneral(op)
 	oauthInfo = os.InfoByOp(op)
 	if oauthInfo.Id == 0 || oauthInfo.ClientId == "" || oauthInfo.ClientSecret == "" {
-		return errors.New("ConfigNotFound"), nil, nil, nil
+		return nil, nil, nil, errors.New("ConfigNotFound")
 	}
 	apiDomain = normalizeAPIDomain(apiDomain)
 	oauthConfig = &oauth2.Config{
@@ -197,7 +197,7 @@ func (os *OauthService) GetOauthConfig(op string, apiDomain string) (err error, 
 	oauthType := oauthInfo.OauthType
 	err = model.ValidateOauthType(oauthType)
 	if err != nil {
-		return err, nil, nil, nil
+		return nil, nil, nil, err
 	}
 	switch oauthType {
 	case model.OauthTypeGithub:
@@ -212,16 +212,16 @@ func (os *OauthService) GetOauthConfig(op string, apiDomain string) (err error, 
 	//	oauthConfig.Endpoint = google.Endpoint
 	//	oauthConfig.Scopes = os.constructScopes(oauthInfo.Scopes)
 	case model.OauthTypeOidc, model.OauthTypeGoogle:
-		err, provider = os.FetchOidcProvider(oauthInfo.Issuer)
+		provider, err = os.FetchOidcProvider(oauthInfo.Issuer)
 		if err != nil {
-			return err, nil, nil, nil
+			return nil, nil, nil, err
 		}
 		oauthConfig.Endpoint = provider.Endpoint()
 		oauthConfig.Scopes = os.constructScopes(oauthInfo.Scopes)
 	default:
-		return errors.New("unsupported OAuth type"), nil, nil, nil
+		return nil, nil, nil, errors.New("unsupported OAuth type")
 	}
-	return nil, oauthInfo, oauthConfig, provider
+	return oauthInfo, oauthConfig, provider, nil
 }
 
 func getHTTPClientWithProxy() *http.Client {
@@ -244,7 +244,7 @@ func getHTTPClientWithProxy() *http.Client {
 	}
 	return http.DefaultClient
 }
-func (os *OauthService) callbackBase(oauthConfig *oauth2.Config, provider *oidc.Provider, code string, verifier string, nonce string, userData interface{}) (err error, client *http.Client) {
+func (os *OauthService) callbackBase(oauthConfig *oauth2.Config, provider *oidc.Provider, code string, verifier string, nonce string, userData interface{}) (client *http.Client, err error) {
 
 	// Set up proxy client
 	httpClient := getHTTPClientWithProxy()
@@ -259,7 +259,7 @@ func (os *OauthService) callbackBase(oauthConfig *oauth2.Config, provider *oidc.
 
 	if err != nil {
 		Logger.Warn("oauthConfig.Exchange() failed: ", err)
-		return errors.New("GetOauthTokenError"), nil
+		return nil, errors.New("GetOauthTokenError")
 	}
 
 	// Get ID Token, github does not have id_token
@@ -270,7 +270,7 @@ func (os *OauthService) callbackBase(oauthConfig *oauth2.Config, provider *oidc.
 		idToken, err2 := v.Verify(ctx, rawIDToken)
 		if err2 != nil {
 			Logger.Warn("IdTokenVerifyError: ", err2)
-			return errors.New("IdTokenVerifyError"), nil
+			return nil, errors.New("IdTokenVerifyError")
 		}
 		if nonce != "" {
 			// Verify nonce
@@ -279,12 +279,12 @@ func (os *OauthService) callbackBase(oauthConfig *oauth2.Config, provider *oidc.
 			}
 			if err2 = idToken.Claims(&claims); err2 != nil {
 				Logger.Warn("Failed to parse ID Token claims: ", err)
-				return errors.New("IDTokenClaimsError"), nil
+				return nil, errors.New("IDTokenClaimsError")
 			}
 
 			if claims.Nonce != nonce {
 				Logger.Warn("Nonce does not match")
-				return errors.New("NonceDoesNotMatch"), nil
+				return nil, errors.New("NonceDoesNotMatch")
 			}
 		}
 	}
@@ -294,7 +294,7 @@ func (os *OauthService) callbackBase(oauthConfig *oauth2.Config, provider *oidc.
 	resp, err := client.Get(provider.UserInfoEndpoint())
 	if err != nil {
 		Logger.Warn("failed getting user info: ", err)
-		return errors.New("GetOauthUserInfoError"), nil
+		return nil, errors.New("GetOauthUserInfoError")
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
@@ -305,64 +305,64 @@ func (os *OauthService) callbackBase(oauthConfig *oauth2.Config, provider *oidc.
 	// Parse user information
 	if err = json.NewDecoder(resp.Body).Decode(userData); err != nil {
 		Logger.Warn("failed decoding user info: ", err)
-		return errors.New("DecodeOauthUserInfoError"), nil
+		return nil, errors.New("DecodeOauthUserInfoError")
 	}
 
-	return nil, client
+	return client, nil
 }
 
 // githubCallback github callback
-func (os *OauthService) githubCallback(oauthConfig *oauth2.Config, provider *oidc.Provider, code, verifier, nonce string) (error, *model.OauthUser) {
+func (os *OauthService) githubCallback(oauthConfig *oauth2.Config, provider *oidc.Provider, code, verifier, nonce string) (*model.OauthUser, error) {
 	var user = &model.GithubUser{}
-	err, client := os.callbackBase(oauthConfig, provider, code, verifier, nonce, user)
+	client, err := os.callbackBase(oauthConfig, provider, code, verifier, nonce, user)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	err = os.getGithubPrimaryEmail(client, user)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
-	return nil, user.ToOauthUser()
+	return user.ToOauthUser(), nil
 }
 
 // linuxdoCallback linux.do callback
-func (os *OauthService) linuxdoCallback(oauthConfig *oauth2.Config, provider *oidc.Provider, code, verifier, nonce string) (error, *model.OauthUser) {
+func (os *OauthService) linuxdoCallback(oauthConfig *oauth2.Config, provider *oidc.Provider, code, verifier, nonce string) (*model.OauthUser, error) {
 	var user = &model.LinuxdoUser{}
-	err, _ := os.callbackBase(oauthConfig, provider, code, verifier, nonce, user)
+	_, err := os.callbackBase(oauthConfig, provider, code, verifier, nonce, user)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
-	return nil, user.ToOauthUser()
+	return user.ToOauthUser(), nil
 }
 
 // oidcCallback oidc callback, obtain user information through code
-func (os *OauthService) oidcCallback(oauthConfig *oauth2.Config, provider *oidc.Provider, code, verifier, nonce string) (error, *model.OauthUser) {
+func (os *OauthService) oidcCallback(oauthConfig *oauth2.Config, provider *oidc.Provider, code, verifier, nonce string) (*model.OauthUser, error) {
 	var user = &model.OidcUser{}
-	if err, _ := os.callbackBase(oauthConfig, provider, code, verifier, nonce, user); err != nil {
-		return err, nil
+	if _, err := os.callbackBase(oauthConfig, provider, code, verifier, nonce, user); err != nil {
+		return nil, err
 	}
-	return nil, user.ToOauthUser()
+	return user.ToOauthUser(), nil
 }
 
 // Callback: Get user information by code and op(Oauth provider)
-func (os *OauthService) Callback(code, verifier, op, nonce, apiDomain string) (err error, oauthUser *model.OauthUser) {
-	err, oauthInfo, oauthConfig, provider := os.GetOauthConfig(op, apiDomain)
+func (os *OauthService) Callback(code, verifier, op, nonce, apiDomain string) (oauthUser *model.OauthUser, err error) {
+	oauthInfo, oauthConfig, provider, err := os.GetOauthConfig(op, apiDomain)
 	// oauthType is already validated in GetOauthConfig
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	oauthType := oauthInfo.OauthType
 	switch oauthType {
 	case model.OauthTypeGithub:
-		err, oauthUser = os.githubCallback(oauthConfig, provider, code, verifier, nonce)
+		oauthUser, err = os.githubCallback(oauthConfig, provider, code, verifier, nonce)
 	case model.OauthTypeLinuxdo:
-		err, oauthUser = os.linuxdoCallback(oauthConfig, provider, code, verifier, nonce)
+		oauthUser, err = os.linuxdoCallback(oauthConfig, provider, code, verifier, nonce)
 	case model.OauthTypeOidc, model.OauthTypeGoogle:
-		err, oauthUser = os.oidcCallback(oauthConfig, provider, code, verifier, nonce)
+		oauthUser, err = os.oidcCallback(oauthConfig, provider, code, verifier, nonce)
 	default:
-		return errors.New("unsupported OAuth type"), nil
+		return nil, errors.New("unsupported OAuth type")
 	}
-	return err, oauthUser
+	return oauthUser, err
 }
 
 func (os *OauthService) UserThirdInfo(op string, openId string) *model.UserThird {
@@ -374,7 +374,7 @@ func (os *OauthService) UserThirdInfo(op string, openId string) *model.UserThird
 // BindOauthUser: Bind third party account
 func (os *OauthService) BindOauthUser(userId uint, oauthUser *model.OauthUser, op string) error {
 	utr := &model.UserThird{}
-	err, oauthType := os.GetTypeByOp(op)
+	oauthType, err := os.GetTypeByOp(op)
 	if err != nil {
 		return err
 	}
@@ -411,12 +411,6 @@ func (os *OauthService) InfoByOp(op string) *model.Oauth {
 	return oauthInfo
 }
 
-// Helper function to get scopes by operation
-func (os *OauthService) getScopesByOp(op string) []string {
-	scopes := os.InfoByOp(op).Scopes
-	return os.constructScopes(scopes)
-}
-
 // Helper function to construct scopes
 func (os *OauthService) constructScopes(scopes string) []string {
 	scopes = strings.TrimSpace(scopes)
@@ -441,12 +435,12 @@ func (os *OauthService) List(page, pageSize uint, where func(tx *gorm.DB)) (res 
 }
 
 // GetTypeByOp Gets OauthType based on op
-func (os *OauthService) GetTypeByOp(op string) (error, string) {
+func (os *OauthService) GetTypeByOp(op string) (string, error) {
 	oauthInfo := &model.Oauth{}
 	if DB.Where("op = ?", op).First(oauthInfo).Error != nil {
-		return fmt.Errorf("OAuth provider with op '%s' not found", op), ""
+		return "", fmt.Errorf("OAuth provider with op '%s' not found", op)
 	}
-	return nil, oauthInfo.OauthType
+	return oauthInfo.OauthType, nil
 }
 
 // ValidateOauthProvider verifies whether the Oauth provider is correct
@@ -496,14 +490,13 @@ func (os *OauthService) GetOauthProviders() []string {
 	return res
 }
 
-// getGithubPrimaryEmail: Get the primary email of the user from Github
 func (os *OauthService) getGithubPrimaryEmail(client *http.Client, githubUser *model.GithubUser) error {
 	// the client is already set with the token
 	resp, err := client.Get("https://api.github.com/user/emails")
 	if err != nil {
 		return fmt.Errorf("failed to fetch emails: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// check the response status code
 	if resp.StatusCode != http.StatusOK {

@@ -132,11 +132,12 @@ func InitGlobal() {
 	})
 
 	//cache
-	if global.Config.Cache.Type == cache.TypeFile {
+	switch global.Config.Cache.Type {
+	case cache.TypeFile:
 		fc := cache.NewFileCache()
 		fc.SetDir(global.Config.Cache.FileDir)
 		global.Cache = fc
-	} else if global.Config.Cache.Type == cache.TypeRedis {
+	case cache.TypeRedis:
 		global.Cache = cache.NewRedis(&redis.Options{
 			Addr:     global.Config.Cache.RedisAddr,
 			Password: global.Config.Cache.RedisPwd,
@@ -144,7 +145,8 @@ func InitGlobal() {
 		})
 	}
 	//gorm
-	if global.Config.Gorm.Type == config.TypeMysql {
+	switch global.Config.Gorm.Type {
+	case config.TypeMysql:
 
 		dsn := fmt.Sprintf("%s:%s@(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=%s",
 			global.Config.Mysql.Username,
@@ -159,7 +161,7 @@ func InitGlobal() {
 			MaxIdleConns: global.Config.Gorm.MaxIdleConns,
 			MaxOpenConns: global.Config.Gorm.MaxOpenConns,
 		}, global.Logger)
-	} else if global.Config.Gorm.Type == config.TypePostgresql {
+	case config.TypePostgresql:
 		dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s TimeZone=%s",
 			global.Config.Postgresql.Host,
 			global.Config.Postgresql.Port,
@@ -174,7 +176,7 @@ func InitGlobal() {
 			MaxIdleConns: global.Config.Gorm.MaxIdleConns,
 			MaxOpenConns: global.Config.Gorm.MaxOpenConns,
 		}, global.Logger)
-	} else {
+	default:
 		//sqlite
 		global.DB = orm.NewSqlite(&orm.SqliteConfig{
 			MaxIdleConns: global.Config.Gorm.MaxIdleConns,
@@ -340,7 +342,7 @@ func Migrate(version uint) {
 			Name: defaultGroup,
 			Type: model.GroupTypeDefault,
 		}
-		service.AllService.GroupService.Create(group)
+		_ = service.AllService.GroupService.Create(group)
 
 		shareGroup, _ := localizer.LocalizeMessage(&i18n.Message{
 			ID: "ShareGroup",
@@ -349,7 +351,7 @@ func Migrate(version uint) {
 			Name: shareGroup,
 			Type: model.GroupTypeShare,
 		}
-		service.AllService.GroupService.Create(groupShare)
+		_ = service.AllService.GroupService.Create(groupShare)
 		//is true
 		is_admin := true
 		admin := &model.User{

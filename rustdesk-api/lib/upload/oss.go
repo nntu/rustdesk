@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
@@ -28,16 +27,6 @@ type Oss struct {
 	CallbackUrl     string
 	ExpireTime      int64
 	MaxByte         int64
-}
-
-const (
-	base64Table = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_"
-)
-
-var coder = base64.NewEncoding(base64Table)
-
-func base64Encode(src []byte) []byte {
-	return []byte(coder.EncodeToString(src))
 }
 
 func get_gmt_iso8601(expire_end int64) string {
@@ -91,12 +80,12 @@ func (oc *Oss) GetPolicyToken(uploadDir string) string {
 	config.Conditions = append(config.Conditions, condition, condition_limit)
 
 	//calucate signature
-	result, err := json.Marshal(config)
+	result, _ := json.Marshal(config)
 	debyte := base64.StdEncoding.EncodeToString(result)
 	h := hmac.New(func() hash.Hash {
 		return sha1.New()
 	}, []byte(oc.AccessKeySecret))
-	io.WriteString(h, debyte)
+	_, _ = io.WriteString(h, debyte)
 	signedStr := base64.StdEncoding.EncodeToString(h.Sum(nil))
 
 	var callbackParam CallbackParam
@@ -180,12 +169,12 @@ func getPublicKey(r *http.Request) ([]byte, error) {
 		fmt.Printf("Get PublicKey Content from URL failed : %s \n", err.Error())
 		return bytePublicKey, err
 	}
-	bytePublicKey, err = ioutil.ReadAll(responsePublicKeyURL.Body)
+	defer func() { _ = responsePublicKeyURL.Body.Close() }()
+	bytePublicKey, err = io.ReadAll(responsePublicKeyURL.Body)
 	if err != nil {
 		fmt.Printf("Read PublicKey Content from URL failed : %s \n", err.Error())
 		return bytePublicKey, err
 	}
-	defer responsePublicKeyURL.Body.Close()
 	// fmt.Printf("publicKey={%s}\n", bytePublicKey)
 	return bytePublicKey, nil
 }
@@ -207,9 +196,9 @@ func getAuthorization(r *http.Request) ([]byte, error) {
 func getMD5FromNewAuthString(r *http.Request) ([]byte, error) {
 	var byteMD5 []byte
 	// Construct the New Auth String from URI+Query+Body
-	bodyContent, err := ioutil.ReadAll(r.Body)
-	r.Body.Close()
-	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyContent))
+	bodyContent, err := io.ReadAll(r.Body)
+	_ = r.Body.Close()
+	r.Body = io.NopCloser(bytes.NewBuffer(bodyContent))
 	if err != nil {
 		fmt.Printf("Read Request Body failed : %s \n", err.Error())
 		return byteMD5, err
@@ -272,14 +261,6 @@ func verifySignature(bytePublicKey []byte, byteMd5 []byte, authorization []byte)
 	return true
 }
 
-func printByteArray(byteArrary []byte, arrName string) {
-	fmt.Printf("++++++++ printByteArray :  ArrayName=%s, ArrayLength=%d \n", arrName, len(byteArrary))
-	for i := 0; i < len(byteArrary); i++ {
-		fmt.Printf("%02x", byteArrary[i])
-	}
-	fmt.Printf("\n-------- printByteArray :  End . \n")
-}
-
 type EscapeError string
 
 func (e EscapeError) Error() string {
@@ -307,7 +288,6 @@ const (
 // unescapePath : unescapes a string; the mode specifies, which section of the URL string is being unescaped.
 func unescapePath(s string, mode encoding) (string, error) {
 	// Count %, check that they're well-formed.
-	mode = encodePathSegment
 	n := 0
 	hasPlus := false
 	for i := 0; i < len(s); {

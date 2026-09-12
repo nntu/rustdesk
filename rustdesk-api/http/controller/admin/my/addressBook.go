@@ -53,10 +53,6 @@ func (ct *AddressBook) List(c *gin.Context) {
 		}
 	})
 
-	abCIds := make([]uint, 0)
-	for _, ab := range res.AddressBooks {
-		abCIds = append(abCIds, ab.CollectionId)
-	}
 	response.Success(c, res)
 }
 
@@ -241,7 +237,7 @@ func (ct *AddressBook) BatchCreateFromPeers(c *gin.Context) {
 		if ex.RowId != 0 {
 			continue
 		}
-		service.AllService.AddressBookService.Create(ab)
+		_ = service.AllService.AddressBookService.Create(ab)
 	}
 	response.Success(c, nil)
 }

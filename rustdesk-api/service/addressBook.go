@@ -77,9 +77,9 @@ func (s *AddressBookService) UpdateAddressBook(abs []*model.AddressBook, userId 
 		if !ok {
 			//Add to
 			if ab.Platform == "" || ab.Username == "" || ab.Hostname == "" {
-				peer := AllService.PeerService.FindById(ab.Id)
+				peer := AllService.FindById(ab.Id)
 				if peer.RowId != 0 {
-					ab.Platform = AllService.AddressBookService.PlatformFromOs(peer.Os)
+					ab.Platform = AllService.PlatformFromOs(peer.Os)
 					ab.Username = peer.Username
 					ab.Hostname = peer.Hostname
 				}
@@ -344,4 +344,3 @@ func (s *AddressBookService) BatchUpdateTags(abs []*model.AddressBook, tags []st
 func (s *AddressBookService) UpdatePasswordByPeerId(peerId string, newPassword string) error {
 	return DB.Model(&model.AddressBook{}).Where("id = ?", peerId).Update("password", newPassword).Error
 }
-

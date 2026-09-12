@@ -100,8 +100,7 @@ func (sr *ShareRecord) BatchDelete(c *gin.Context) {
 		return
 	}
 	u := service.AllService.UserService.CurUser(c)
-	var l int64
-	l = int64(len(f.Ids))
+	l := int64(len(f.Ids))
 	res := service.AllService.ShareRecordService.List(1, uint(l), func(tx *gorm.DB) {
 		tx.Where("user_id = ?", u.Id)
 		tx.Where("id in ?", f.Ids)

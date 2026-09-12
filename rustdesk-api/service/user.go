@@ -47,7 +47,7 @@ func (us *UserService) InfoByOpenid(openid string) *model.User {
 // InfoByUsernamePassword gets user information based on username and password
 func (us *UserService) InfoByUsernamePassword(username, password string) *model.User {
 	if Config.Ldap.Enable {
-		u, err := AllService.LdapService.Authenticate(username, password)
+		u, err := AllService.Authenticate(username, password)
 		if err == nil {
 			return u
 		}
@@ -107,7 +107,7 @@ func (us *UserService) Login(u *model.User, llog *model.LoginLog) *model.UserTok
 	llog.UserTokenId = ut.UserId
 	DB.Create(llog)
 	if llog.Uuid != "" {
-		AllService.PeerService.UuidBindUserId(llog.DeviceId, llog.Uuid, u.Id)
+		AllService.UuidBindUserId(llog.DeviceId, llog.Uuid, u.Id)
 	}
 	return ut
 }
@@ -201,7 +201,7 @@ func (us *UserService) Logout(u *model.User, token string) error {
 		return err
 	}
 	if uuid != "" {
-		AllService.PeerService.UuidUnbindUserId(uuid, u.Id)
+		AllService.UuidUnbindUserId(uuid, u.Id)
 	}
 	return nil
 }
@@ -210,7 +210,7 @@ func (us *UserService) Logout(u *model.User, token string) error {
 func (us *UserService) Delete(u *model.User) error {
 	userCount := us.getAdminUserCount()
 	if userCount <= 1 && us.IsAdmin(u) {
-		return errors.New("The last admin user cannot be deleted")
+		return errors.New("the last admin user cannot be deleted")
 	}
 	tx := DB.Begin()
 	// Delete user
@@ -240,7 +240,7 @@ func (us *UserService) Delete(u *model.User) error {
 	}
 	tx.Commit()
 	// Delete associated peer
-	if err := AllService.PeerService.EraseUserId(u.Id); err != nil {
+	if err := AllService.EraseUserId(u.Id); err != nil {
 		Logger.Warn("User deleted successfully, but failed to unlink peer.")
 		return nil
 	}
@@ -255,7 +255,7 @@ func (us *UserService) Update(u *model.User) error {
 		adminCount := us.getAdminUserCount()
 		// If this is the only administrator, make sure administrator privileges cannot be disabled or revoked
 		if adminCount <= 1 && (!us.IsAdmin(u) || u.Status == model.COMMON_STATUS_DISABLED) {
-			return errors.New("The last admin user cannot be disabled or demoted")
+			return errors.New("the last admin user cannot be disabled or demoted")
 		}
 	}
 	return DB.Model(u).Updates(u).Error
@@ -318,16 +318,16 @@ func (us *UserService) InfoByOauthId(op string, openId string) *model.User {
 }
 
 // RegisterByOauth Register
-func (us *UserService) RegisterByOauth(oauthUser *model.OauthUser, op string) (error, *model.User) {
+func (us *UserService) RegisterByOauth(oauthUser *model.OauthUser, op string) (*model.User, error) {
 	Lock.Lock("registerByOauth")
 	defer Lock.UnLock("registerByOauth")
 	ut := AllService.OauthService.UserThirdInfo(op, oauthUser.OpenId)
 	if ut.Id != 0 {
-		return nil, us.InfoById(ut.UserId)
+		return us.InfoById(ut.UserId), nil
 	}
-	err, oauthType := AllService.OauthService.GetTypeByOp(op)
+	oauthType, err := AllService.GetTypeByOp(op)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	//check if this email has been registered
 	email := oauthUser.Email
@@ -337,10 +337,10 @@ func (us *UserService) RegisterByOauth(oauthUser *model.OauthUser, op string) (e
 		// update email to oauthUser, in case it contain upper case
 		oauthUser.Email = email
 		// call this, if find user by email, it will update the email to local database
-		user, ldapErr := AllService.LdapService.GetUserInfoByEmailLocal(email)
+		user, ldapErr := AllService.GetUserInfoByEmailLocal(email)
 		// If we enable ldap, and the error is not ErrLdapUserNotFound, return the error because we could not sure if the user is not found in ldap
-		if !(errors.Is(ldapErr, ErrLdapNotEnabled) || errors.Is(ldapErr, ErrLdapUserNotFound) || ldapErr == nil) {
-			return ldapErr, user
+		if !errors.Is(ldapErr, ErrLdapNotEnabled) && !errors.Is(ldapErr, ErrLdapUserNotFound) && ldapErr != nil {
+			return user, ldapErr
 		}
 		if user.Id == 0 {
 			// this means the user is not found in ldap, maybe ldao is not enabled
@@ -349,7 +349,7 @@ func (us *UserService) RegisterByOauth(oauthUser *model.OauthUser, op string) (e
 		if user.Id != 0 {
 			ut.FromOauthUser(user.Id, oauthUser, oauthType, op)
 			DB.Create(ut)
-			return nil, user
+			return user, nil
 		}
 	}
 
@@ -367,12 +367,12 @@ func (us *UserService) RegisterByOauth(oauthUser *model.OauthUser, op string) (e
 	tx.Create(user)
 	if user.Id == 0 {
 		tx.Rollback()
-		return errors.New("OauthRegisterFailed"), user
+		return user, errors.New("OauthRegisterFailed")
 	}
 	ut.UserId = user.Id
 	tx.Create(ut)
 	tx.Commit()
-	return nil, user
+	return user, nil
 }
 
 // GenerateUsernameByOauth generates username
@@ -472,13 +472,6 @@ func (us *UserService) formatUsername(username string) string {
 	return username
 }
 
-// Helper functions, getUserCount
-func (us *UserService) getUserCount() int64 {
-	var count int64
-	DB.Model(&model.User{}).Count(&count)
-	return count
-}
-
 // helper functions, getAdminUserCount
 func (us *UserService) getAdminUserCount() int64 {
 	var count int64
@@ -533,5 +526,5 @@ func (us *UserService) IsUsernameExistsLocal(username string) bool {
 }
 
 func (us *UserService) IsEmailExistsLdap(email string) bool {
-	return AllService.LdapService.IsEmailExists(email)
+	return AllService.IsEmailExists(email)
 }

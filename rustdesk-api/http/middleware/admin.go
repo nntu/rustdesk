@@ -17,14 +17,14 @@ func BackendUserAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		user, ut := service.AllService.UserService.InfoByAccessToken(token)
+		user, ut := service.AllService.InfoByAccessToken(token)
 		if user.Id == 0 {
 			response.Fail(c, 403, response.TranslateMsg(c, "NeedLogin"))
 			c.Abort()
 			return
 		}
 
-		if !service.AllService.UserService.CheckUserEnable(user) {
+		if !service.AllService.CheckUserEnable(user) {
 			c.JSON(401, gin.H{
 				"error": "Unauthorized",
 			})
@@ -35,7 +35,7 @@ func BackendUserAuth() gin.HandlerFunc {
 		c.Set("curUser", user)
 		c.Set("token", token)
 		//If the time is less than 1 day, the token will be automatically renewed.
-		service.AllService.UserService.AutoRefreshAccessToken(ut)
+		service.AllService.AutoRefreshAccessToken(ut)
 
 		c.Next()
 	}

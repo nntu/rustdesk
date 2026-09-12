@@ -9,10 +9,8 @@ import (
 // A simple cache is implemented here for testing
 // SimpleCache is a simple cache implementation
 type SimpleCache struct {
-	data      map[string]interface{}
-	mu        sync.Mutex
-	maxBytes  int64
-	usedBytes int64
+	data map[string]interface{}
+	mu   sync.Mutex
 }
 
 func (s *SimpleCache) Get(key string, value interface{}) error {
@@ -21,7 +19,7 @@ func (s *SimpleCache) Get(key string, value interface{}) error {
 
 	// Use reflection to set the stored value into the passed pointer variable
 	val := reflect.ValueOf(value)
-	if val.Kind() != reflect.Ptr {
+	if val.Kind() != reflect.Pointer {
 		return errors.New("value must be a pointer")
 	}
 	v, ok := s.data[key]
@@ -47,7 +45,7 @@ func (s *SimpleCache) Set(key string, value interface{}, exp int) error {
 	defer s.mu.Unlock()
 	// Check if the passed in value is a pointer, if so take its value
 	val := reflect.ValueOf(value)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 
