@@ -4,6 +4,12 @@ x-server-build: &server-build
   context: .
   dockerfile: Dockerfile.server
 
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   # ------------------------------------------------------------------------------
   # 1. RustDesk ID/Rendezvous Server (hbbs - Built from Fork)
@@ -30,6 +36,7 @@ services:
     networks:
       - rustdesk-net
     restart: unless-stopped
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -50,6 +57,7 @@ services:
     depends_on:
       - hbbs
     restart: unless-stopped
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -84,6 +92,7 @@ services:
     depends_on:
       - hbbs
     restart: unless-stopped
+    logging: *default-logging
 
   # ------------------------------------------------------------------------------
   # 4. Nginx Reverse Proxy (Unified entrypoint for API and WebSockets)
@@ -103,6 +112,7 @@ services:
       - hbbs
       - hbbr
     restart: unless-stopped
+    logging: *default-logging
 
   # ------------------------------------------------------------------------------
   # 5. CoTURN STUN/TURN Server (Optional - For WebRTC & Symmetric NAT Traversal)
@@ -131,10 +141,9 @@ services:
       --realm=${DOMAIN}
       --use-auth-secret
       --static-auth-secret=${COTURN_SECRET:-coturn_secret_key_change_me}
-      --no-tls
-      --no-dtls
     networks:
       - rustdesk-net
+    logging: *default-logging
 
 networks:
   rustdesk-net:
