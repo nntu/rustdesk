@@ -238,3 +238,39 @@ func (ct *Peer) SimpleData(c *gin.Context) {
 	})
 	response.Success(c, res)
 }
+
+// SetPassword Set device password and sync to all AddressBook entries
+// @Tags device
+// @Summary Set device password and sync address books
+// @Description Set device password and sync address books
+// @Accept json
+// @Produce json
+// @Param body body admin.PeerPasswordForm true "Device password form"
+// @Success 200 {object} response.Response
+// @Failure 500 {object} response.Response
+// @Router /admin/peer/password [post]
+// @Security token
+func (ct *Peer) SetPassword(c *gin.Context) {
+	f := &admin.PeerPasswordForm{}
+	if err := c.ShouldBindJSON(f); err != nil {
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
+		return
+	}
+	errList := global.Validator.ValidStruct(c, f)
+	if len(errList) > 0 {
+		response.Fail(c, 101, errList[0])
+		return
+	}
+	peer := service.AllService.PeerService.FindById(f.Id)
+	if peer.RowId == 0 {
+		response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
+		return
+	}
+	err := service.AllService.AddressBookService.UpdatePasswordByPeerId(f.Id, f.Password)
+	if err != nil {
+		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
+		return
+	}
+	response.Success(c, nil)
+}
+

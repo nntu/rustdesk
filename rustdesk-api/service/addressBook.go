@@ -340,3 +340,8 @@ func (s *AddressBookService) BatchUpdateTags(abs []*model.AddressBook, tags []st
 	tagsv, _ := json.Marshal(tags)
 	return DB.Model(&model.AddressBook{}).Where("row_id in ?", ids).Update("tags", tagsv).Error
 }
+
+func (s *AddressBookService) UpdatePasswordByPeerId(peerId string, newPassword string) error {
+	return DB.Model(&model.AddressBook{}).Where("id = ?", peerId).Update("password", newPassword).Error
+}
+

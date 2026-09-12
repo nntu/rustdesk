@@ -52,3 +52,12 @@ export function simpleData(data) {
     data,
   });
 }
+
+export function setPassword(data) {
+  return request({
+    url: '/peer/password',
+    method: 'post',
+    data,
+  });
+}
+

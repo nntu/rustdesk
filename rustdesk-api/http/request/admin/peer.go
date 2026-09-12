@@ -20,6 +20,11 @@ type PeerBatchDeleteForm struct {
 	RowIds []uint `json:"row_ids" validate:"required"`
 }
 
+type PeerPasswordForm struct {
+	Id       string `json:"id" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
 // ToPeer
 func (f *PeerForm) ToPeer() *model.Peer {
 	return &model.Peer{

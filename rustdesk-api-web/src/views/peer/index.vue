@@ -101,10 +101,11 @@
           <el-table-column v-if="c.name==='updated_at'" prop="updated_at" :label="T('UpdatedAt')" align="center" width="150"/>
         </template>
 
-        <el-table-column :label="T('Actions')" align="center" width="500" class-name="table-actions" fixed="right">
+        <el-table-column :label="T('Actions')" align="center" width="560" class-name="table-actions" fixed="right">
           <template #default="{row}">
             <el-button type="success" @click="connectByClient(row.id)">{{ T('Link') }}</el-button>
             <el-button v-if="appStore.setting.appConfig.web_client" type="success" @click="toWebClientLink(row)">Web Client</el-button>
+            <el-button type="warning" @click="toSetPassword(row)">{{ T('SetPassword') || 'Đặt mật khẩu' }}</el-button>
             <el-button type="primary" @click="toAddressBook(row)">{{ T('AddToAddressBook') }}</el-button>
             <el-button @click="toEdit(row)">{{ T('Edit') }}</el-button>
             <el-button type="danger" @click="del(row)">{{ T('Delete') }}</el-button>
@@ -171,6 +172,32 @@
       <createABForm :peer="clickRow" @success="ABFormVisible=false" @cancel="ABFormVisible=false"></createABForm>
     </el-dialog>
 
+    <el-dialog v-model="passwordFormVisible" title="Đặt mật khẩu kết nối tập trung" width="550px">
+      <el-form :model="passwordFormData" label-width="120px">
+        <el-form-item label="ID Thiết bị">
+          <el-input v-model="passwordFormData.id" disabled></el-input>
+        </el-form-item>
+        <el-form-item label="Mật khẩu mới" required>
+          <el-input v-model="passwordFormData.password" show-password placeholder="Nhập mật khẩu kết nối mới">
+            <template #append>
+              <el-button @click="generateRandomPassword">Tạo ngẫu nhiên</el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="Lệnh CLI Client" v-if="passwordFormData.password">
+          <el-input readonly :value="`rustdesk --password ${passwordFormData.password}`">
+            <template #append>
+              <el-button @click="handleClipboard(`rustdesk --password ${passwordFormData.password}`, $event)">Copy</el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-button @click="passwordFormVisible = false">{{ T('Cancel') }}</el-button>
+          <el-button type="primary" :loading="passwordSubmitting" @click="submitSetPassword">{{ T('Submit') }}</el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
+
     <el-dialog v-model="batchABFormVisible" width="800" :title="T('Create')">
       <el-form class="dialog-form" ref="form" :model="batchABFormData" label-width="120px">
         <el-form-item :label="T('Owner')" prop="user_id" required>
@@ -233,7 +260,7 @@
 <script setup>
   import { computed, onActivated, onMounted, reactive, ref, watch } from 'vue'
   import { useRouter } from 'vue-router'
-  import { batchRemove, create, list, remove, update } from '@/api/peer'
+  import { batchRemove, create, list, remove, update, setPassword } from '@/api/peer'
   import { list as groupList } from '@/api/device_group'
   import { ElMessage, ElMessageBox } from 'element-plus'
   import { toWebClientLink } from '@/utils/webclient'
@@ -246,6 +273,42 @@
   import { ArrowDown, ArrowUp, CopyDocument, Setting } from '@element-plus/icons-vue'
   import { handleClipboard } from '@/utils/clipboard'
   import { batchCreateFromPeers } from '@/api/address_book'
+
+  const passwordFormVisible = ref(false)
+  const passwordSubmitting = ref(false)
+  const passwordFormData = reactive({
+    id: '',
+    password: '',
+  })
+
+  const toSetPassword = (row) => {
+    passwordFormData.id = row.id
+    passwordFormData.password = ''
+    passwordFormVisible.value = true
+  }
+
+  const generateRandomPassword = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let pass = ''
+    for (let i = 0; i < 10; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    passwordFormData.password = pass
+  }
+
+  const submitSetPassword = async () => {
+    if (!passwordFormData.password) {
+      ElMessage.warning('Vui lòng nhập hoặc tạo mật khẩu mới')
+      return
+    }
+    passwordSubmitting.value = true
+    const res = await setPassword(passwordFormData).catch(_ => false)
+    passwordSubmitting.value = false
+    if (res) {
+      ElMessage.success('Cập nhật mật khẩu và đồng bộ Sổ địa chỉ thành công')
+      passwordFormVisible.value = false
+    }
+  }
   import { useRepositories as useCollectionRepositories } from '@/views/address_book/collection'
   import createABForm from '@/views/peer/createABForm.vue'
   import { UploadFilled } from '@element-plus/icons-vue'
