@@ -121,10 +121,11 @@ services:
     image: coturn/coturn:latest
     container_name: rustdesk-coturn
     restart: unless-stopped
-    ports:
-      - "3478:3478"
-      - "3478:3478/udp"
-      - "49152-49200:49152-49200/udp"
+    network_mode: host
+    # ports:
+    #   - "3478:3478"
+    #   - "3478:3478/udp"
+    #   - "49152-49200:49152-49200/udp"
     volumes:
       - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
     command:
