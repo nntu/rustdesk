@@ -131,8 +131,8 @@ services:
     command:
       - -c
       - /etc/coturn/turnserver.conf
-    networks:
-      - rustdesk-net
+    # networks:
+    #   - rustdesk-net
     logging: *default-logging
 
 networks:
