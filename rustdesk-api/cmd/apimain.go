@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"
@@ -126,9 +126,11 @@ func InitGlobal() {
 
 	//redis
 	global.Redis = redis.NewClient(&redis.Options{
-		Addr:     global.Config.Redis.Addr,
-		Password: global.Config.Redis.Password,
-		DB:       global.Config.Redis.Db,
+		Addr:            global.Config.Redis.Addr,
+		Password:        global.Config.Redis.Password,
+		DB:              global.Config.Redis.Db,
+		Protocol:        2,
+		DisableIdentity: true,
 	})
 
 	//cache
@@ -139,9 +141,11 @@ func InitGlobal() {
 		global.Cache = fc
 	case cache.TypeRedis:
 		global.Cache = cache.NewRedis(&redis.Options{
-			Addr:     global.Config.Cache.RedisAddr,
-			Password: global.Config.Cache.RedisPwd,
-			DB:       global.Config.Cache.RedisDb,
+			Addr:            global.Config.Cache.RedisAddr,
+			Password:        global.Config.Cache.RedisPwd,
+			DB:              global.Config.Cache.RedisDb,
+			Protocol:        2,
+			DisableIdentity: true,
 		})
 	}
 	//gorm

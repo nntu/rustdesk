@@ -21,6 +21,7 @@ gin:
   api-addr: "0.0.0.0:21114"
   mode: "release" #release,debug,test
   resources-path: 'resources'  #External static file directory
+  # Comma-separated IPs or CIDRs of trusted reverse proxies. Empty uses the direct peer IP.
   trust-proxy: ""
 gorm:
   type: "sqlite"
